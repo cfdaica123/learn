@@ -7,18 +7,18 @@ export interface VocabularyItem {
   meaning: string; // 意味
   hanViet: string; // 漢越
   hasKanji: boolean; // Có chữ Hán hay không
-  note?: string; // Ghi chú thêm (ví dụ: Tên giả định, v.v.)
+  note?: string; // Ghi chú thêm
 }
 
 export type StudyMode = 'flashcard' | 'quiz' | 'list';
 
-export type CardOrientation = 'ja-to-vi' | 'vi-to-ja';
+export type WordStatusFilter = 'all' | 'mastered' | 'unmastered';
 
 export interface FilterState {
   part: 'all' | 1 | 2;
   lesson: number | 'all';
   kanjiOnly: boolean; // Lọc ra những từ có Hán tự
-  hideMastered: boolean; // Ẩn những từ đã thuộc
+  statusFilter: WordStatusFilter; // 'all' | 'mastered' (Từ đã nhớ) | 'unmastered' (Từ chưa nhớ)
   starredOnly: boolean; // Chỉ những từ đánh dấu sao
   searchQuery: string;
 }

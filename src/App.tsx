@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ALL_VOCABULARY } from './data/vocabulary';
-import { FilterState, StudyMode, CardOrientation } from './types';
+import { FilterState, StudyMode, WordStatusFilter } from './types';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
 import { FlashcardView } from './components/FlashcardView';
@@ -14,14 +14,13 @@ const STORAGE_KEY_STARRED = 'minna_starred_words';
 
 export default function App() {
   const [currentMode, setCurrentMode] = useState<StudyMode>('flashcard');
-  const [orientation, setOrientation] = useState<CardOrientation>('ja-to-vi');
 
   // Filter state
   const [filter, setFilter] = useState<FilterState>({
     part: 'all',
     lesson: 'all',
     kanjiOnly: false,
-    hideMastered: false,
+    statusFilter: 'all', // 'all' | 'mastered' (Từ đã nhớ) | 'unmastered' (Từ chưa nhớ)
     starredOnly: false,
     searchQuery: '',
   });
@@ -151,8 +150,11 @@ export default function App() {
         return false;
       }
 
-      // Hide Mastered Filter (Ẩn những từ đã thuộc)
-      if (filter.hideMastered && masteredIds.has(item.id)) {
+      // USER REQUIREMENT: Hiển thị những từ đã nhớ hoặc những từ chưa nhớ
+      if (filter.statusFilter === 'mastered' && !masteredIds.has(item.id)) {
+        return false;
+      }
+      if (filter.statusFilter === 'unmastered' && masteredIds.has(item.id)) {
         return false;
       }
 
@@ -177,22 +179,26 @@ export default function App() {
     });
   }, [filter, masteredIds, starredIds]);
 
-  // Statistics
-  const kanjiCountInCurrentScope = useMemo(() => {
+  // Statistics in current Part / Lesson scope
+  const wordsInScope = useMemo(() => {
     return ALL_VOCABULARY.filter((item) => {
       if (filter.part !== 'all' && item.part !== filter.part) return false;
       if (filter.lesson !== 'all' && item.lesson !== filter.lesson) return false;
-      return item.hasKanji;
-    }).length;
+      return true;
+    });
   }, [filter.part, filter.lesson]);
 
+  const kanjiCountInCurrentScope = useMemo(() => {
+    return wordsInScope.filter((item) => item.hasKanji).length;
+  }, [wordsInScope]);
+
   const masteredCountInCurrentScope = useMemo(() => {
-    return ALL_VOCABULARY.filter((item) => {
-      if (filter.part !== 'all' && item.part !== filter.part) return false;
-      if (filter.lesson !== 'all' && item.lesson !== filter.lesson) return false;
-      return masteredIds.has(item.id);
-    }).length;
-  }, [filter.part, filter.lesson, masteredIds]);
+    return wordsInScope.filter((item) => masteredIds.has(item.id)).length;
+  }, [wordsInScope, masteredIds]);
+
+  const unmasteredCountInCurrentScope = useMemo(() => {
+    return wordsInScope.length - masteredCountInCurrentScope;
+  }, [wordsInScope.length, masteredCountInCurrentScope]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-gray-900 flex flex-col antialiased">
@@ -208,17 +214,14 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-4 py-3 sm:py-8">
-        {/* Filter Controls (Part 1/2, Bài, Lọc Hán tự, Ẩn từ đã thuộc) */}
+        {/* Filter Controls (Part 1/2, Bài, Từ đã nhớ, Từ chưa nhớ, Lọc Hán tự) */}
         <FilterBar
           filter={filter}
           onFilterChange={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
-          orientation={orientation}
-          onToggleOrientation={() =>
-            setOrientation((o) => (o === 'ja-to-vi' ? 'vi-to-ja' : 'ja-to-vi'))
-          }
           totalAvailable={filteredVocabulary.length}
           kanjiCount={kanjiCountInCurrentScope}
           masteredCount={masteredCountInCurrentScope}
+          unmasteredCount={unmasteredCountInCurrentScope}
           starredCount={starredIds.size}
         />
 
@@ -226,15 +229,14 @@ export default function App() {
         {currentMode === 'flashcard' && (
           <FlashcardView
             items={filteredVocabulary}
-            orientation={orientation}
             masteredIds={masteredIds}
             learningIds={learningIds}
             starredIds={starredIds}
             onMarkStatus={handleMarkStatus}
             onToggleStar={handleToggleStar}
-            hideMastered={filter.hideMastered}
-            onToggleHideMastered={() =>
-              setFilter((prev) => ({ ...prev, hideMastered: !prev.hideMastered }))
+            statusFilter={filter.statusFilter}
+            onSelectStatusFilter={(st) =>
+              setFilter((prev) => ({ ...prev, statusFilter: st }))
             }
           />
         )}
