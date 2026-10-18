@@ -252,6 +252,7 @@ export default function App() {
         {currentMode === 'quiz' && (
           <QuizView
             items={filteredVocabulary}
+            scopeKey={`${filter.part}_${filter.lesson}_${filter.kanjiOnly}`}
             onMarkMastered={(id) => handleMarkStatus(id, 'mastered')}
           />
         )}
