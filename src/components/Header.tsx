@@ -42,8 +42,8 @@ export const Header: React.FC<HeaderProps> = ({
                   N5 (1-25)
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-gray-500 font-medium hidden sm:block truncate">
-                Kaizen Yoshida School • Chuẩn Âm Hán-Việt & Kanji
+              <p className="text-[10px] sm:text-xs text-rose-600 font-semibold truncate">
+                iBeos - 山 - cps - 🥕
               </p>
             </div>
           </div>

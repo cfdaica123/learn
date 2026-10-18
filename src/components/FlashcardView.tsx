@@ -12,7 +12,9 @@ import {
   Play, 
   Pause,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { speakJapanese } from '../utils/speech';
 import confetti from 'canvas-confetti';
@@ -26,6 +28,7 @@ interface FlashcardViewProps {
   onMarkStatus: (id: string, status: 'mastered' | 'learning' | 'unseen') => void;
   onToggleStar: (id: string) => void;
   hideMastered: boolean;
+  onToggleHideMastered?: () => void;
 }
 
 export const FlashcardView: React.FC<FlashcardViewProps> = ({
@@ -37,6 +40,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   onMarkStatus,
   onToggleStar,
   hideMastered,
+  onToggleHideMastered,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -191,18 +195,28 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-3xl p-8 sm:p-10 text-center shadow-xs border border-gray-100 max-w-xl mx-auto my-6 sm:my-8">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3.5 sm:mb-4">
+      <div className="bg-white rounded-3xl p-8 sm:p-10 text-center shadow-xs border border-gray-100 max-w-xl mx-auto my-6 sm:my-8 space-y-4">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
           <Sparkles className="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
-        <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900">
           Tuyệt vời! Không còn thẻ nào cần học
         </h3>
-        <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 leading-relaxed">
+        <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
           {hideMastered
-            ? 'Bạn đã thuộc toàn bộ từ vựng trong phạm vi lọc này. Hãy thử tắt "Ẩn từ đã thuộc" hoặc đổi Part/Bài để tiếp tục ôn tập!'
+            ? 'Bạn đã nhớ và thuộc toàn bộ từ vựng trong phạm vi lọc này.'
             : 'Không tìm thấy từ vựng nào khớp với bộ lọc hiện tại.'}
         </p>
+
+        {hideMastered && onToggleHideMastered && (
+          <button
+            onClick={onToggleHideMastered}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+          >
+            <Eye className="w-4 h-4" />
+            <span>Tắt ẩn từ đã nhớ (Xem lại tất cả)</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -211,7 +225,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     <div className="max-w-xl mx-auto space-y-3 sm:space-y-4">
       
       {/* Top progress and controls bar */}
-      <div className="flex items-center justify-between text-xs font-semibold text-gray-500 px-1">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-semibold text-gray-500 px-1">
         <div className="flex items-center gap-1.5">
           <span className="bg-rose-50 text-rose-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-rose-200/60 font-bold text-[11px] sm:text-xs">
             Bài {currentItem.lesson} • Part {currentItem.part}
@@ -221,10 +235,25 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
               Chữ Hán
             </span>
           )}
+          {/* Quick toggle on top of card */}
+          {onToggleHideMastered && (
+            <button
+              onClick={onToggleHideMastered}
+              className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border text-[10px] sm:text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                hideMastered
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-1 ring-emerald-300'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+              }`}
+              title="Bật / Tắt ẩn từ đã nhớ"
+            >
+              {hideMastered ? <EyeOff className="w-3 h-3 text-white" /> : <Eye className="w-3 h-3 text-emerald-600" />}
+              <span>{hideMastered ? 'Đang ẩn từ đã nhớ' : 'Ẩn từ đã nhớ'}</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-gray-600 font-bold text-xs">
+          <span className="text-gray-600 font-bold text-xs bg-gray-100 px-2 py-0.5 rounded-md">
             {currentIndex + 1} / {items.length}
           </span>
 

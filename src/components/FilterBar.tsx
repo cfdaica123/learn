@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FilterState, CardOrientation } from '../types';
 import { 
+  Eye,
   EyeOff, 
   Layers, 
   Filter, 
   Search, 
   Star, 
   ArrowLeftRight,
-  BookMarked,
-  SlidersHorizontal,
-  ChevronDown,
-  ChevronUp
+  BookMarked
 } from 'lucide-react';
 
 interface FilterBarProps {
@@ -34,8 +32,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   masteredCount,
   starredCount,
 }) => {
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-
   // Lessons available based on selected Part
   const getLessonsForPart = () => {
     if (filter.part === 1) {
@@ -48,17 +44,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   const currentLessons = getLessonsForPart();
-  const activeFiltersCount = 
-    (filter.kanjiOnly ? 1 : 0) + 
-    (filter.hideMastered ? 1 : 0) + 
-    (filter.starredOnly ? 1 : 0) + 
-    (filter.searchQuery ? 1 : 0);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-2.5 sm:space-y-3.5 mb-4 sm:mb-6">
+    <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 mb-4 sm:mb-6">
       
       {/* Row 1: Part Selection (Part 1 vs Part 2 vs Toàn bộ) & Flip Orientation */}
-      <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2.5 sm:pb-3">
+      <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 hidden sm:flex items-center gap-1 shrink-0">
             <Layers className="w-3.5 h-3.5 text-rose-500" />
@@ -67,7 +58,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <div className="flex items-center p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
             <button
               onClick={() => onFilterChange({ part: 'all', lesson: 'all' })}
-              className={`px-2 sm:px-3 py-1.5 rounded-lg transition-all text-[11px] sm:text-xs ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs ${
                 filter.part === 'all'
                   ? 'bg-white text-rose-700 shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -77,7 +68,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
             <button
               onClick={() => onFilterChange({ part: 1, lesson: 'all' })}
-              className={`px-2 sm:px-3 py-1.5 rounded-lg transition-all text-[11px] sm:text-xs ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs ${
                 filter.part === 1
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -87,7 +78,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
             <button
               onClick={() => onFilterChange({ part: 2, lesson: 'all' })}
-              className={`px-2 sm:px-3 py-1.5 rounded-lg transition-all text-[11px] sm:text-xs ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs ${
                 filter.part === 2
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -98,41 +89,20 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
         </div>
 
-        {/* Orientation flip & Mobile filter drawer toggle */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={onToggleOrientation}
-            className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors active:scale-95"
-            title="Đổi chiều hỏi đáp"
-          >
-            <ArrowLeftRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600" />
-            <span className="hidden xs:inline">
-              {orientation === 'ja-to-vi' ? '🇯🇵 Nhật ➔ 🇻🇳 Việt' : '🇻🇳 Việt ➔ 🇯🇵 Nhật'}
-            </span>
-            <span className="xs:hidden">
-              {orientation === 'ja-to-vi' ? '🇯🇵➔🇻🇳' : '🇻🇳➔🇯🇵'}
-            </span>
-          </button>
-
-          {/* Mobile toggle button for search & quick filters */}
-          <button
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className={`sm:hidden p-1.5 rounded-xl border transition-colors flex items-center gap-1 text-xs font-bold ${
-              activeFiltersCount > 0
-                ? 'bg-rose-50 border-rose-200 text-rose-700'
-                : 'bg-gray-50 border-gray-200 text-gray-600'
-            }`}
-            title="Mở bộ lọc bổ sung"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            {activeFiltersCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center font-bold">
-                {activeFiltersCount}
-              </span>
-            )}
-            {showMobileFilters ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-        </div>
+        {/* Orientation flip */}
+        <button
+          onClick={onToggleOrientation}
+          className="flex items-center gap-1 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors shrink-0 active:scale-95"
+          title="Đổi chiều hỏi đáp"
+        >
+          <ArrowLeftRight className="w-3.5 h-3.5 text-rose-600" />
+          <span className="hidden xs:inline">
+            {orientation === 'ja-to-vi' ? '🇯🇵 Nhật ➔ 🇻🇳 Việt' : '🇻🇳 Việt ➔ 🇯🇵 Nhật'}
+          </span>
+          <span className="xs:hidden">
+            {orientation === 'ja-to-vi' ? '🇯🇵➔🇻🇳' : '🇻🇳➔🇯🇵'}
+          </span>
+        </button>
       </div>
 
       {/* Row 2: Touch Horizontal Scroller for Lessons */}
@@ -165,71 +135,77 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         ))}
       </div>
 
-      {/* Row 3: Special Filters (Always visible on desktop, toggleable or compact chips on mobile) */}
-      <div className={`sm:flex flex-wrap items-center justify-between gap-2.5 pt-1 ${showMobileFilters ? 'block space-y-2 sm:space-y-0' : 'hidden sm:flex'}`}>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          
+      {/* Row 3: Primary Toggles ALWAYS VISIBLE ON MOBILE & DESKTOP (ẨN TỪ ĐÃ NHỚ, CHỈ TỪ KANJI, ĐÃ LƯU ⭐) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100/80">
+        
+        <div className="flex flex-wrap items-center gap-2">
+          {/* USER EMPHASIS: Nút Ẩn những từ đã nhớ */}
+          <button
+            onClick={() => onFilterChange({ hideMastered: !filter.hideMastered })}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
+              filter.hideMastered
+                ? 'bg-emerald-600 border-emerald-600 text-white ring-2 ring-emerald-300'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+            }`}
+          >
+            {filter.hideMastered ? (
+              <EyeOff className="w-4 h-4 text-white" />
+            ) : (
+              <Eye className="w-4 h-4 text-emerald-600" />
+            )}
+            <span>
+              {filter.hideMastered ? 'Đang ẩn từ đã nhớ' : 'Ẩn từ đã nhớ'}
+            </span>
+            {masteredCount > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                filter.hideMastered ? 'bg-white text-emerald-700' : 'bg-emerald-200 text-emerald-900'
+              }`}>
+                {filter.hideMastered ? `-${masteredCount}` : masteredCount}
+              </span>
+            )}
+          </button>
+
           {/* USER REQUEST: Lọc từ có Hán tự (Kanji only) */}
           <button
             onClick={() => onFilterChange({ kanjiOnly: !filter.kanjiOnly })}
-            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all border active:scale-95 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
               filter.kanjiOnly
-                ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-xs'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                ? 'bg-amber-500 border-amber-500 text-white shadow-xs ring-2 ring-amber-300'
+                : 'bg-amber-50/80 border-amber-200 text-amber-900 hover:bg-amber-100/80'
             }`}
           >
-            <Filter className={`w-3.5 h-3.5 ${filter.kanjiOnly ? 'text-amber-600 fill-amber-500' : 'text-gray-400'}`} />
+            <Filter className={`w-3.5 h-3.5 ${filter.kanjiOnly ? 'text-white' : 'text-amber-600'}`} />
             <span>Chỉ từ có Kanji</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-              filter.kanjiOnly ? 'bg-amber-200 text-amber-900' : 'bg-gray-100 text-gray-600'
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              filter.kanjiOnly ? 'bg-white text-amber-900' : 'bg-amber-200 text-amber-900'
             }`}>
               {kanjiCount}
             </span>
           </button>
 
-          {/* USER REQUEST: Ẩn từ đã thuộc */}
-          <button
-            onClick={() => onFilterChange({ hideMastered: !filter.hideMastered })}
-            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all border active:scale-95 ${
-              filter.hideMastered
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <EyeOff className={`w-3.5 h-3.5 ${filter.hideMastered ? 'text-emerald-600' : 'text-gray-400'}`} />
-            <span>Ẩn từ đã thuộc</span>
-            {masteredCount > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                filter.hideMastered ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-100 text-gray-600'
-              }`}>
-                -{masteredCount}
-              </span>
-            )}
-          </button>
-
           {/* Starred filter */}
           <button
             onClick={() => onFilterChange({ starredOnly: !filter.starredOnly })}
-            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all border active:scale-95 ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border active:scale-95 cursor-pointer ${
               filter.starredOnly
-                ? 'bg-yellow-50 border-yellow-300 text-yellow-900 shadow-xs'
+                ? 'bg-yellow-400 border-yellow-500 text-yellow-950 shadow-xs ring-2 ring-yellow-200 font-bold'
                 : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            <Star className={`w-3.5 h-3.5 ${filter.starredOnly ? 'text-yellow-500 fill-yellow-400' : 'text-gray-400'}`} />
+            <Star className={`w-3.5 h-3.5 ${filter.starredOnly ? 'text-yellow-900 fill-yellow-900' : 'text-gray-400'}`} />
             <span>Đã lưu ⭐ ({starredCount})</span>
           </button>
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full sm:w-52 pt-1 sm:pt-0">
+        <div className="relative w-full sm:w-48">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Tìm Kanji, Hán-Việt, Nghĩa..."
+            placeholder="Tìm từ vựng, Hán Việt..."
             value={filter.searchQuery}
             onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
-            className="w-full pl-8 pr-3 py-1.5 bg-gray-50 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+            className="w-full pl-8 pr-6 py-1.5 bg-gray-50 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
           />
           {filter.searchQuery && (
             <button
@@ -240,6 +216,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
           )}
         </div>
+
       </div>
 
     </div>

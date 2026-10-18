@@ -233,6 +233,9 @@ export default function App() {
             onMarkStatus={handleMarkStatus}
             onToggleStar={handleToggleStar}
             hideMastered={filter.hideMastered}
+            onToggleHideMastered={() =>
+              setFilter((prev) => ({ ...prev, hideMastered: !prev.hideMastered }))
+            }
           />
         )}
 
@@ -261,10 +264,10 @@ export default function App() {
         filteredCount={filteredVocabulary.length}
       />
 
-      {/* Desktop Footer */}
-      <footer className="border-t border-gray-200/60 bg-white py-4 mt-auto hidden md:block">
-        <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-500">
-          <span>Tài liệu từ vựng 25 Bài Minna no Nihongo (Kaizen Yoshida School) • Học từ vựng, Kanji & Âm Hán-Việt</span>
+      {/* Footer */}
+      <footer className="border-t border-gray-200/60 bg-white py-3 sm:py-4 mt-auto mb-14 md:mb-0">
+        <div className="max-w-6xl mx-auto px-4 text-center text-xs font-semibold text-gray-600">
+          <span>iBeos - 山 - cps - 🥕</span>
         </div>
       </footer>
     </div>
