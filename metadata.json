@@ -1,0 +1,6 @@
+{
+  "name": "Flashcard Minna no Nihongo N5 (Bài 1 - 25)",
+  "description": "Ứng dụng học Flashcard từ vựng tiếng Nhật Minna no Nihongo Bài 1-25 kèm âm Hán Việt, lọc từ Kanji, chia Part 1 & 2 và chế độ ghi nhớ thông minh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
