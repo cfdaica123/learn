@@ -11,7 +11,6 @@ import {
   AlertCircle, 
   Play, 
   Pause,
-  HelpCircle,
   Sparkles,
   Eye,
   EyeOff
@@ -45,7 +44,6 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const [showHanVietHint, setShowHanVietHint] = useState(false);
 
   // Touch swipe support for mobile
   const touchStartX = useRef<number | null>(null);
@@ -58,7 +56,6 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       setCurrentIndex(0);
     }
     setIsFlipped(false);
-    setShowHanVietHint(false);
   }, [items.length]);
 
   const currentItem: VocabularyItem | undefined = items[currentIndex];
@@ -69,14 +66,12 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   const handleNext = useCallback(() => {
     if (items.length <= 1) return;
     setIsFlipped(false);
-    setShowHanVietHint(false);
     setCurrentIndex((prev) => (prev + 1) % items.length);
   }, [items.length]);
 
   const handlePrev = useCallback(() => {
     if (items.length <= 1) return;
     setIsFlipped(false);
-    setShowHanVietHint(false);
     setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
   }, [items.length]);
 
@@ -131,12 +126,12 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     return () => clearTimeout(timer);
   }, [isAutoPlaying, isFlipped, handleNext, items.length]);
 
-  // Audio pronounce on card view change if Japanese front
+  // Pronounce audio when card flips to back to reveal pronunciation
   useEffect(() => {
-    if (currentItem && orientation === 'ja-to-vi' && !isFlipped) {
+    if (isFlipped && currentItem) {
       speakJapanese(currentItem.hiragana || currentItem.word);
     }
-  }, [currentIndex, orientation]);
+  }, [isFlipped, currentItem]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -178,7 +173,6 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     const randomIdx = Math.floor(Math.random() * items.length);
     setCurrentIndex(randomIdx);
     setIsFlipped(false);
-    setShowHanVietHint(false);
   };
 
   const handleMarkMastered = (e: React.MouseEvent) => {
@@ -329,49 +323,21 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
             </div>
 
             {/* Front Center Content */}
-            <div className="my-auto text-center py-2 sm:py-4 px-2">
+            <div className="my-auto text-center py-4 sm:py-6 px-2">
               {orientation === 'ja-to-vi' ? (
                 <div>
-                  <h2 className="text-3xl sm:text-5xl font-black text-gray-900 tracking-wide font-japanese break-words">
+                  {/* USER REQUIREMENT: Mặt nào có Kanji thì chỉ hiển thị mỗi Kanji thôi, lật mặt sau mới ra */}
+                  <h2 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-wide font-japanese break-words">
                     {currentItem.word}
                   </h2>
-                  
-                  {/* Subtle hiragana hint below word if Kanji */}
-                  {currentItem.word !== currentItem.hiragana && (
-                    <p className="text-sm sm:text-base text-gray-400 mt-1 sm:mt-2 font-medium tracking-wider">
-                      {currentItem.hiragana}
-                    </p>
-                  )}
-
-                  {/* Han-Viet hint button if user wants a clue */}
-                  {currentItem.hanViet && (
-                    <div className="mt-2.5 sm:mt-4">
-                      {showHanVietHint ? (
-                        <span className="inline-block px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] sm:text-xs font-bold rounded-lg uppercase tracking-wider animate-fade-in">
-                          Âm Hán: {currentItem.hanViet}
-                        </span>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowHanVietHint(true);
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-amber-700 bg-gray-50 hover:bg-amber-50 px-2.5 py-1 rounded-full border border-gray-200 hover:border-amber-200 transition-colors active:scale-95"
-                        >
-                          <HelpCircle className="w-3 h-3" />
-                          <span>Gợi ý âm Hán-Việt</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div>
                   <h2 className="text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight leading-relaxed">
                     {currentItem.meaning}
                   </h2>
-                  <p className="text-xs text-gray-400 mt-1 sm:mt-2 font-medium">
-                    Chạm để xem cách đọc và chữ viết tiếng Nhật
+                  <p className="text-xs text-gray-400 mt-2 font-medium">
+                    Chạm để xem chữ viết và cách đọc tiếng Nhật
                   </p>
                 </div>
               )}
