@@ -48,6 +48,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const currentLessons = getLessonsForPart();
   const lessonScrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftStartRef = useRef(0);
+  const hasDraggedRef = useRef(false);
 
   // Auto-scroll active lesson into view
   useEffect(() => {
@@ -77,6 +81,29 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     }
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!lessonScrollRef.current) return;
+    isDraggingRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.pageX - lessonScrollRef.current.offsetLeft;
+    scrollLeftStartRef.current = lessonScrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !lessonScrollRef.current) return;
+    const x = e.pageX - lessonScrollRef.current.offsetLeft;
+    const walk = (x - startXRef.current);
+    if (Math.abs(walk) > 3) {
+      hasDraggedRef.current = true;
+      e.preventDefault();
+      lessonScrollRef.current.scrollLeft = scrollLeftStartRef.current - walk;
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
+
   const handleStatusFilter = (status: WordStatusFilter) => {
     // If clicking the currently active status, toggle back to 'all'
     if (filter.statusFilter === status && status !== 'all') {
@@ -87,7 +114,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 mb-4 sm:mb-6">
+    <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 mb-4 sm:mb-6 select-none">
       
       {/* Row 1: Part Selection (Part 1 vs Part 2 vs Toàn bộ) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
@@ -99,7 +126,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <div className="flex items-center p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
             <button
               onClick={() => onFilterChange({ part: 'all', lesson: 'all' })}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer select-none ${
                 filter.part === 'all'
                   ? 'bg-white text-rose-700 shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -109,7 +136,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
             <button
               onClick={() => onFilterChange({ part: 1, lesson: 'all' })}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer select-none ${
                 filter.part === 1
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -119,7 +146,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
             <button
               onClick={() => onFilterChange({ part: 2, lesson: 'all' })}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer select-none ${
                 filter.part === 2
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -131,16 +158,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
         {/* Quick count indicator */}
-        <div className="text-xs font-semibold text-gray-400">
+        <div className="text-xs font-semibold text-gray-400 select-none">
           Đang hiển thị: <span className="font-bold text-gray-800">{totalAvailable}</span> từ
         </div>
       </div>
 
-      {/* Row 2: Touch & Mouse Horizontal Scroller for Lessons with Navigation Arrows */}
-      <div className="flex items-center gap-1.5 w-full">
+      {/* Row 2: Touch & Mouse Horizontal Scroller for Lessons with Drag & Click navigation */}
+      <div className="flex items-center gap-1.5 w-full select-none">
         <button
           onClick={handleScrollLeft}
-          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95"
+          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95 select-none"
           title="Cuộn sang các bài trước"
           type="button"
         >
@@ -150,14 +177,21 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         <div 
           ref={lessonScrollRef}
           onWheel={handleWheel}
-          className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 touch-pan-x flex-1 scroll-smooth no-scrollbar"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 touch-pan-x flex-1 scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing"
+          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
         >
-          <span className="text-[11px] sm:text-xs font-semibold text-gray-400 whitespace-nowrap flex items-center gap-1 shrink-0">
+          <span className="text-[11px] sm:text-xs font-semibold text-gray-400 whitespace-nowrap flex items-center gap-1 shrink-0 select-none pointer-events-none">
             <BookMarked className="w-3 h-3" /> Bài:
           </span>
           <button
-            onClick={() => onFilterChange({ lesson: 'all' })}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors shrink-0 cursor-pointer ${
+            onClick={() => {
+              if (!hasDraggedRef.current) onFilterChange({ lesson: 'all' });
+            }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors shrink-0 cursor-pointer select-none ${
               filter.lesson === 'all'
                 ? 'bg-gray-900 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -169,8 +203,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               key={l}
               data-lesson={l}
-              onClick={() => onFilterChange({ lesson: l })}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 active:scale-95 cursor-pointer ${
+              onClick={() => {
+                if (!hasDraggedRef.current) onFilterChange({ lesson: l });
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 active:scale-95 cursor-pointer select-none ${
                 filter.lesson === l
                   ? 'bg-rose-600 text-white shadow-xs font-bold'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -183,7 +219,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         <button
           onClick={handleScrollRight}
-          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95"
+          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95 select-none"
           title="Cuộn sang các bài sau"
           type="button"
         >

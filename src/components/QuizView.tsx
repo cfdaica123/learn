@@ -327,10 +327,10 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
           )}
         </div>
 
-        {/* Dynamic Question Prompt: KHÔNG GỢI Ý GÌ CẢ (Không hiện nghĩa, không hiện Hán-Việt) */}
-        <div className="my-6 sm:my-8 min-h-[70px] flex flex-col justify-center items-center">
+        {/* Dynamic Question Prompt: KHÔNG GỢI Ý GÌ CẢ (Không hiện nghĩa, không hiện Hán-Việt, không chữ hướng dẫn thừa) */}
+        <div className="my-8 sm:my-10 min-h-[70px] flex flex-col justify-center items-center">
           {quizType === 'kanjiTrap' ? (
-            <h2 className="text-3xl sm:text-5xl font-black text-rose-600 tracking-wider font-japanese break-words selection:bg-rose-100">
+            <h2 className="text-4xl sm:text-6xl font-black text-rose-600 tracking-wider font-japanese break-words selection:bg-rose-100">
               {item.hiragana}
             </h2>
           ) : (
@@ -339,16 +339,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
             </h2>
           )}
         </div>
-
-        <p className="text-xs text-gray-400 font-medium">
-          {quizType === 'kanjiTrap'
-            ? '🎯 Chọn đúng chữ Hán (Kanji):'
-            : quizType === 'hiraganaTrap'
-            ? '🪤 Chọn đúng cách đọc Hiragana:'
-            : quizType === 'hanViet'
-            ? 'Chọn đúng âm Hán - Việt của từ trên:'
-            : 'Chọn nghĩa tiếng Việt chính xác:'}
-        </p>
       </div>
 
       {/* 4 Choices - GIỮ NGUYÊN VỊ TRÍ, KHÔNG BỊ NHẢY KHI CHỌN ĐÁP ÁN ĐÚNG */}
