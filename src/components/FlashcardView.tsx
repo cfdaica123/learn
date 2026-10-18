@@ -331,20 +331,17 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
               </div>
             </div>
 
-            {/* Front Center Content: CHỈ HIỂN THỊ KANJI / TỪ TIẾNG NHẬT */}
-            <div className="my-auto text-center py-4 sm:py-6 px-2">
-              <h2 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-wide font-japanese break-words">
+            {/* Front Center Content: CHỈ HIỂN THỊ KANJI / TỪ TIẾNG NHẬT TINH GỌN */}
+            <div className="my-auto text-center py-6 sm:py-8 px-2">
+              <h2 className="text-5xl sm:text-7xl font-black text-gray-900 tracking-wide font-japanese break-words select-none">
                 {currentItem.word}
               </h2>
-              <p className="text-xs text-gray-400 mt-3 font-medium">
-                Chạm để lật xem cách đọc Hiragana & Hán-Việt
-              </p>
             </div>
 
             {/* Front Footer */}
-            <div className="flex items-center justify-between text-xs text-gray-400 border-t border-gray-100 pt-2.5 sm:pt-3">
-              <span className="text-[10px] sm:text-[11px] flex items-center gap-1">
-                <RotateCw className="w-3 h-3 text-rose-400" /> Chạm thẻ để xem đáp án
+            <div className="flex items-center justify-between text-xs text-gray-400 border-t border-gray-100 pt-2 sm:pt-2.5">
+              <span className="text-[10px] sm:text-[11px] font-medium text-gray-300 tracking-wider uppercase">
+                Minna No Nihongo
               </span>
               <span className="text-[10px] sm:text-[11px] font-medium text-gray-400">
                 # {currentItem.id}
