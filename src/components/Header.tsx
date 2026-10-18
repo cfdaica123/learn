@@ -71,15 +71,14 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {masteredCount > 0 && (
-              <button
-                onClick={onResetProgress}
-                title="Đặt lại tiến độ đã thuộc"
-                className="text-gray-400 hover:text-rose-600 hover:bg-rose-50 p-1 rounded-lg transition-colors active:scale-95"
-              >
-                <RotateCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </button>
-            )}
+            <button
+              onClick={onResetProgress}
+              title="Xóa toàn bộ cache, đưa ứng dụng về trạng thái ban đầu"
+              className="flex items-center gap-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 p-1 sm:px-2 sm:py-1 rounded-lg transition-colors active:scale-95 text-xs font-semibold cursor-pointer"
+            >
+              <RotateCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-500" />
+              <span className="hidden md:inline text-[11px]">Về ban đầu</span>
+            </button>
           </div>
 
           {/* Desktop Navigation Modes */}

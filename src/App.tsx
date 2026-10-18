@@ -7,6 +7,8 @@ import { FlashcardView } from './components/FlashcardView';
 import { QuizView } from './components/QuizView';
 import { WordListView } from './components/WordListView';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { ResetConfirmModal } from './components/ResetConfirmModal';
+import { Check } from 'lucide-react';
 
 const STORAGE_KEY_MASTERED = 'minna_mastered_words';
 const STORAGE_KEY_LEARNING = 'minna_learning_words';
@@ -125,11 +127,37 @@ export default function App() {
     });
   };
 
-  const handleResetProgress = () => {
-    if (window.confirm('Bạn có chắc chắn muốn đặt lại toàn bộ tiến độ các từ đã thuộc không?')) {
-      setMasteredIds(new Set());
-      setLearningIds(new Set());
+  // Reset Cache / Modal State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
+
+  const handleConfirmResetAll = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY_MASTERED);
+      localStorage.removeItem(STORAGE_KEY_LEARNING);
+      localStorage.removeItem(STORAGE_KEY_STARRED);
+    } catch (e) {
+      console.error(e);
     }
+    setMasteredIds(new Set());
+    setLearningIds(new Set());
+    setStarredIds(new Set());
+    setFilter({
+      part: 'all',
+      lesson: 'all',
+      kanjiOnly: false,
+      statusFilter: 'all',
+      starredOnly: false,
+      searchQuery: '',
+    });
+    showToast('Đã xóa toàn bộ bộ nhớ cache! Ứng dụng đã trở về trạng thái ban đầu.');
   };
 
   // Filter application
@@ -216,7 +244,7 @@ export default function App() {
         totalFilteredCount={filteredVocabulary.length}
         masteredCount={masteredIds.size}
         totalVocabularyCount={ALL_VOCABULARY.length}
-        onResetProgress={handleResetProgress}
+        onResetProgress={() => setIsResetModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -231,6 +259,7 @@ export default function App() {
           unmasteredCount={unmasteredCountInCurrentScope}
           hesitantCount={hesitantCountInCurrentScope}
           starredCount={starredIds.size}
+          onResetAllData={() => setIsResetModalOpen(true)}
         />
 
         {/* View Mode Switching */}
@@ -281,6 +310,24 @@ export default function App() {
           <span>iBeos - 山 - cps - 🥕</span>
         </div>
       </footer>
+
+      {/* Reset Cache Confirmation Modal */}
+      <ResetConfirmModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={handleConfirmResetAll}
+        masteredCount={masteredIds.size}
+        hesitantCount={learningIds.size}
+        starredCount={starredIds.size}
+      />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900/95 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold backdrop-blur-sm animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <span className="text-emerald-400">✓</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

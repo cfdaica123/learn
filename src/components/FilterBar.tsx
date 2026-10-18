@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { FilterState, WordStatusFilter } from '../types';
 import { 
-  Layers, 
   Filter, 
   Search, 
   Star, 
@@ -10,8 +9,7 @@ import {
   CircleDashed,
   LayoutGrid,
   HelpCircle,
-  ChevronLeft,
-  ChevronRight
+  RotateCcw
 } from 'lucide-react';
 
 interface FilterBarProps {
@@ -23,6 +21,7 @@ interface FilterBarProps {
   unmasteredCount: number;
   hesitantCount: number;
   starredCount: number;
+  onResetAllData?: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -34,46 +33,36 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   unmasteredCount,
   hesitantCount,
   starredCount,
+  onResetAllData,
 }) => {
-  // Lessons available based on selected Part
-  const getLessonsForPart = () => {
-    if (filter.part === 1) {
-      return Array.from({ length: 15 }, (_, i) => i + 1); // Lessons 1 to 15
-    } else if (filter.part === 2) {
-      return Array.from({ length: 10 }, (_, i) => i + 16); // Lessons 16 to 25
-    } else {
-      return Array.from({ length: 25 }, (_, i) => i + 1); // Lessons 1 to 25
-    }
-  };
-
-  const currentLessons = getLessonsForPart();
   const lessonScrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftStartRef = useRef(0);
   const hasDraggedRef = useRef(false);
 
-  // Auto-scroll active lesson into view
+  // Auto-scroll active lesson into center view smoothly
   useEffect(() => {
-    if (filter.lesson !== 'all' && lessonScrollRef.current) {
-      const activeEl = lessonScrollRef.current.querySelector<HTMLElement>(`[data-lesson="${filter.lesson}"]`);
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (lessonScrollRef.current) {
+      let targetSelector = '';
+      if (filter.lesson !== 'all') {
+        targetSelector = `[data-lesson="${filter.lesson}"]`;
+      } else if (filter.part === 1) {
+        targetSelector = `[data-scope="part1"]`;
+      } else if (filter.part === 2) {
+        targetSelector = `[data-scope="part2"]`;
+      } else {
+        targetSelector = `[data-scope="all"]`;
+      }
+
+      if (targetSelector) {
+        const activeEl = lessonScrollRef.current.querySelector<HTMLElement>(targetSelector);
+        if (activeEl) {
+          activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
       }
     }
-  }, [filter.lesson]);
-
-  const handleScrollLeft = () => {
-    if (lessonScrollRef.current) {
-      lessonScrollRef.current.scrollBy({ left: -240, behavior: 'smooth' });
-    }
-  };
-
-  const handleScrollRight = () => {
-    if (lessonScrollRef.current) {
-      lessonScrollRef.current.scrollBy({ left: 240, behavior: 'smooth' });
-    }
-  };
+  }, [filter.lesson, filter.part]);
 
   const handleWheel = (e: React.WheelEvent) => {
     if (lessonScrollRef.current && e.deltaY !== 0) {
@@ -93,7 +82,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     if (!isDraggingRef.current || !lessonScrollRef.current) return;
     const x = e.pageX - lessonScrollRef.current.offsetLeft;
     const walk = (x - startXRef.current);
-    if (Math.abs(walk) > 3) {
+    if (Math.abs(walk) > 4) {
       hasDraggedRef.current = true;
       e.preventDefault();
       lessonScrollRef.current.scrollLeft = scrollLeftStartRef.current - walk;
@@ -114,131 +103,110 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 mb-4 sm:mb-6 select-none">
+    <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 mb-4 sm:mb-6 select-none" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
       
-      {/* Row 1: Part Selection (Part 1 vs Part 2 vs Toàn bộ) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1 shrink-0">
-            <Layers className="w-3.5 h-3.5 text-rose-500" />
-            Vùng học:
-          </span>
-          <div className="flex items-center p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
-            <button
-              onClick={() => onFilterChange({ part: 'all', lesson: 'all' })}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer select-none ${
-                filter.part === 'all'
-                  ? 'bg-white text-rose-700 shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Cả 25 Bài
-            </button>
-            <button
-              onClick={() => onFilterChange({ part: 1, lesson: 'all' })}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer select-none ${
-                filter.part === 1
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Part 1 (Bài 1-15)
-            </button>
-            <button
-              onClick={() => onFilterChange({ part: 2, lesson: 'all' })}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all text-xs cursor-pointer select-none ${
-                filter.part === 2
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Part 2 (Bài 16-25)
-            </button>
-          </div>
-        </div>
+      {/* USER REQUEST 9: Bỏ mũi tên rườm rà, gộp thanh chọn bài thành 1 dải lướt ngang mượt mà, KHÔNG bôi đen */}
+      <div 
+        ref={lessonScrollRef}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 touch-pan-x scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing border-b border-gray-100 pb-3"
+        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+      >
+        <span className="text-xs font-bold text-gray-500 whitespace-nowrap flex items-center gap-1 shrink-0 mr-1 pointer-events-none select-none">
+          <BookMarked className="w-3.5 h-3.5 text-rose-500" />
+          Bài:
+        </span>
 
-        {/* Quick count indicator */}
-        <div className="text-xs font-semibold text-gray-400 select-none">
-          Đang hiển thị: <span className="font-bold text-gray-800">{totalAvailable}</span> từ
-        </div>
-      </div>
-
-      {/* Row 2: Touch & Mouse Horizontal Scroller for Lessons with Drag & Click navigation */}
-      <div className="flex items-center gap-1.5 w-full select-none">
+        {/* Option: Cả 25 Bài */}
         <button
-          onClick={handleScrollLeft}
-          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95 select-none"
-          title="Cuộn sang các bài trước"
           type="button"
+          data-scope="all"
+          onClick={() => {
+            if (!hasDraggedRef.current) onFilterChange({ part: 'all', lesson: 'all' });
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+            filter.part === 'all' && filter.lesson === 'all'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
         >
-          <ChevronLeft className="w-3.5 h-3.5" />
+          Cả 25 Bài
         </button>
 
-        <div 
-          ref={lessonScrollRef}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 touch-pan-x flex-1 scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing"
-          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        {/* Option: Part 1 (1-15) */}
+        <button
+          type="button"
+          data-scope="part1"
+          onClick={() => {
+            if (!hasDraggedRef.current) onFilterChange({ part: 1, lesson: 'all' });
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+            filter.part === 1 && filter.lesson === 'all'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
         >
-          <span className="text-[11px] sm:text-xs font-semibold text-gray-400 whitespace-nowrap flex items-center gap-1 shrink-0 select-none pointer-events-none">
-            <BookMarked className="w-3 h-3" /> Bài:
-          </span>
-          <button
-            onClick={() => {
-              if (!hasDraggedRef.current) onFilterChange({ lesson: 'all' });
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors shrink-0 cursor-pointer select-none ${
-              filter.lesson === 'all'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Tất cả {filter.part !== 'all' ? `P${filter.part}` : ''}
-          </button>
-          {currentLessons.map((l) => (
+          Part 1 (1-15)
+        </button>
+
+        {/* Option: Part 2 (16-25) */}
+        <button
+          type="button"
+          data-scope="part2"
+          onClick={() => {
+            if (!hasDraggedRef.current) onFilterChange({ part: 2, lesson: 'all' });
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+            filter.part === 2 && filter.lesson === 'all'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Part 2 (16-25)
+        </button>
+
+        <span className="w-px h-4 bg-gray-200 mx-1 shrink-0 pointer-events-none" />
+
+        {/* Individual Lessons 1 to 25 */}
+        {Array.from({ length: 25 }, (_, i) => i + 1).map((l) => {
+          const isActive = filter.lesson === l;
+          return (
             <button
               key={l}
               data-lesson={l}
+              type="button"
               onClick={() => {
-                if (!hasDraggedRef.current) onFilterChange({ lesson: l });
+                if (!hasDraggedRef.current) onFilterChange({ lesson: l, part: 'all' });
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 active:scale-95 cursor-pointer select-none ${
-                filter.lesson === l
+              className={`px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all shrink-0 active:scale-95 cursor-pointer select-none ${
+                isActive
                   ? 'bg-rose-600 text-white shadow-xs font-bold'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold'
               }`}
             >
-              B.{l}
+              Bài {l}
             </button>
-          ))}
-        </div>
-
-        <button
-          onClick={handleScrollRight}
-          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95 select-none"
-          title="Cuộn sang các bài sau"
-          type="button"
-        >
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+          );
+        })}
       </div>
 
-      {/* Row 3: USER REQUEST: 2 NÚT "TỪ ĐÃ NHỚ" & "TỪ CHƯA NHỚ" + LỌC KANJI + TÌM KIẾM */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-gray-100">
+      {/* Row 2: BỘ LỌC TỪ (ĐÃ NHỚ, PHÂN VÂN, CHƯA NHỚ, KANJI, LƯU SAO) + TÌM KIẾM + NÚT XÓA CACHE */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
         
         {/* Memory Status Filter Group */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           
-          {/* ALL BUTTON */}
+          {/* ALL BUTTON (Không dùng màu đen bôi đen) */}
           <button
+            type="button"
             onClick={() => handleStatusFilter('all')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
               filter.statusFilter === 'all'
-                ? 'bg-gray-900 border-gray-900 text-white shadow-xs'
+                ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
             }`}
             title="Xem toàn bộ từ"
@@ -247,8 +215,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <span>Tất cả từ</span>
           </button>
 
-          {/* USER REQUEST BUTTON 1: "TỪ ĐÃ NHỚ" (để check lại những chữ đã nhớ) */}
+          {/* USER REQUEST BUTTON 1: "TỪ ĐÃ NHỚ" */}
           <button
+            type="button"
             onClick={() => handleStatusFilter('mastered')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
               filter.statusFilter === 'mastered'
@@ -268,8 +237,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </span>
           </button>
 
-          {/* USER REQUEST: BỘ LỌC "TỪ PHÂN VÂN" (để check lại xem đã thực sự thuộc chưa) */}
+          {/* USER REQUEST: BỘ LỌC "TỪ PHÂN VÂN" */}
           <button
+            type="button"
             onClick={() => handleStatusFilter('hesitant')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
               filter.statusFilter === 'hesitant'
@@ -289,8 +259,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </span>
           </button>
 
-          {/* USER REQUEST BUTTON 2: "TỪ CHƯA NHỚ" (tập trung học những từ chưa thuộc) */}
+          {/* USER REQUEST BUTTON 2: "TỪ CHƯA NHỚ" */}
           <button
+            type="button"
             onClick={() => handleStatusFilter('unmastered')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
               filter.statusFilter === 'unmastered'
@@ -312,6 +283,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* KANJI ONLY BUTTON */}
           <button
+            type="button"
             onClick={() => onFilterChange({ kanjiOnly: !filter.kanjiOnly })}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
               filter.kanjiOnly
@@ -331,6 +303,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* STARRED BUTTON */}
           <button
+            type="button"
             onClick={() => onFilterChange({ starredOnly: !filter.starredOnly })}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border active:scale-95 cursor-pointer ${
               filter.starredOnly
@@ -341,26 +314,45 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <Star className={`w-3.5 h-3.5 ${filter.starredOnly ? 'text-yellow-900 fill-yellow-900' : 'text-gray-400'}`} />
             <span>Đã lưu ⭐ ({starredCount})</span>
           </button>
-        </div>
 
-        {/* Search Input */}
-        <div className="relative w-full sm:w-48">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Tìm từ vựng, Hán Việt..."
-            value={filter.searchQuery}
-            onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
-            className="w-full pl-8 pr-6 py-1.5 bg-gray-50 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
-          />
-          {filter.searchQuery && (
+          {/* USER REQUEST 10: NÚT XÓA BỘ NHỚ CACHE VỀ BAN ĐẦU */}
+          {onResetAllData && (
             <button
-              onClick={() => onFilterChange({ searchQuery: '' })}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+              type="button"
+              onClick={onResetAllData}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border border-rose-200 bg-rose-50/70 text-rose-700 hover:bg-rose-100 hover:border-rose-300 active:scale-95 cursor-pointer"
+              title="Xóa toàn bộ cache, đưa ứng dụng về trạng thái ban đầu"
             >
-              ✕
+              <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+              <span>Xóa cache ban đầu</span>
             </button>
           )}
+        </div>
+
+        {/* Right side: Active count + Search Input */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <span className="text-[11px] font-semibold text-gray-400 shrink-0 hidden sm:inline">
+            <span className="font-bold text-gray-800">{totalAvailable}</span> từ
+          </span>
+          <div className="relative w-full sm:w-48">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm từ, Hán Việt..."
+              value={filter.searchQuery}
+              onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
+              className="w-full pl-8 pr-6 py-1.5 bg-gray-50 text-xs rounded-xl border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+            />
+            {filter.searchQuery && (
+              <button
+                type="button"
+                onClick={() => onFilterChange({ searchQuery: '' })}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
       </div>

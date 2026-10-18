@@ -232,7 +232,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
         <div className="flex items-center justify-center gap-2 pt-2">
           <button
             onClick={() => onSelectStatusFilter('all')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             <LayoutGrid className="w-3.5 h-3.5" />
             <span>Xem tất cả từ</span>
