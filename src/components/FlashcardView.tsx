@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { VocabularyItem, WordStatusFilter } from '../types';
 import { 
   Volume2, 
-  RotateCw, 
   ChevronLeft, 
   ChevronRight, 
   Shuffle, 
@@ -40,9 +39,23 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   statusFilter,
   onSelectStatusFilter,
 }) => {
+  // USER REQUIREMENT: Shuffle deck so users don't memorize by fixed sequence
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [deck, setDeck] = useState<VocabularyItem[]>(items);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+
+  // Synchronize deck when input items change (e.g. lesson, part, kanji or status filter change)
+  useEffect(() => {
+    if (isShuffled) {
+      setDeck([...items].sort(() => 0.5 - Math.random()));
+    } else {
+      setDeck(items);
+    }
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }, [items, isShuffled]);
 
   // Touch swipe support for mobile
   const touchStartX = useRef<number | null>(null);
@@ -51,32 +64,49 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
   // Keep index within bounds if list size changes
   useEffect(() => {
-    if (currentIndex >= items.length && items.length > 0) {
+    if (currentIndex >= deck.length && deck.length > 0) {
       setCurrentIndex(0);
     }
     setIsFlipped(false);
-  }, [items.length]);
+  }, [deck.length]);
 
-  const currentItem: VocabularyItem | undefined = items[currentIndex];
+  const currentItem: VocabularyItem | undefined = deck[currentIndex];
   const isMastered = currentItem ? masteredIds.has(currentItem.id) : false;
   const isLearning = currentItem ? learningIds.has(currentItem.id) : false;
   const isStarred = currentItem ? starredIds.has(currentItem.id) : false;
 
   const handleNext = useCallback(() => {
-    if (items.length <= 1) return;
+    if (deck.length <= 1) return;
     setIsFlipped(false);
-    setCurrentIndex((prev) => (prev + 1) % items.length);
-  }, [items.length]);
+    setCurrentIndex((prev) => (prev + 1) % deck.length);
+  }, [deck.length]);
 
   const handlePrev = useCallback(() => {
-    if (items.length <= 1) return;
+    if (deck.length <= 1) return;
     setIsFlipped(false);
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
-  }, [items.length]);
+    setCurrentIndex((prev) => (prev - 1 + deck.length) % deck.length);
+  }, [deck.length]);
 
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
   }, []);
+
+  // USER REQUIREMENT: Dedicated button to shuffle order across single lesson, parts or all
+  const handleShuffleDeck = useCallback(() => {
+    if (items.length <= 1) return;
+    setIsShuffled(true);
+    setDeck([...items].sort(() => 0.5 - Math.random()));
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    confetti({ particleCount: 20, spread: 45, origin: { y: 0.8 } });
+  }, [items]);
+
+  const handleResetDeckOrder = useCallback(() => {
+    setIsShuffled(false);
+    setDeck(items);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }, [items]);
 
   const handlePlayAudio = useCallback(
     (e?: React.MouseEvent | React.TouchEvent) => {
@@ -112,7 +142,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
   // Auto-play feature
   useEffect(() => {
-    if (!isAutoPlaying || items.length === 0) return;
+    if (!isAutoPlaying || deck.length === 0) return;
 
     const timer = setTimeout(() => {
       if (!isFlipped) {
@@ -123,7 +153,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     }, 2800);
 
     return () => clearTimeout(timer);
-  }, [isAutoPlaying, isFlipped, handleNext, items.length]);
+  }, [isAutoPlaying, isFlipped, handleNext, deck.length]);
 
   // Pronounce audio when card flips to back to reveal pronunciation
   useEffect(() => {
@@ -148,6 +178,9 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         handlePrev();
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        handleShuffleDeck();
       } else if (e.key === '1') {
         if (currentItem) onMarkStatus(currentItem.id, 'learning');
       } else if (e.key === '2') {
@@ -165,14 +198,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleFlip, handleNext, handlePrev, currentItem, onMarkStatus, onToggleStar]);
-
-  const handleShuffle = () => {
-    if (items.length <= 1) return;
-    const randomIdx = Math.floor(Math.random() * items.length);
-    setCurrentIndex(randomIdx);
-    setIsFlipped(false);
-  };
+  }, [handleFlip, handleNext, handlePrev, handleShuffleDeck, currentItem, onMarkStatus, onToggleStar]);
 
   const handleMarkMastered = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -182,7 +208,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     handleNext();
   };
 
-  if (items.length === 0) {
+  if (deck.length === 0) {
     return (
       <div className="bg-white rounded-3xl p-8 sm:p-10 text-center shadow-xs border border-gray-100 max-w-xl mx-auto my-6 sm:my-8 space-y-4">
         <div className="w-14 h-14 sm:w-16 sm:h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
@@ -261,14 +287,39 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           )}
         </div>
 
+        {/* Action Controls: Shuffle, Auto, and Counter */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-gray-600 font-bold text-xs bg-gray-100 px-2 py-0.5 rounded-md">
-            {currentIndex + 1} / {items.length}
+          <span className="text-gray-600 font-bold text-xs bg-gray-100 px-2 py-1 rounded-lg">
+            {currentIndex + 1} / {deck.length}
           </span>
+
+          {/* USER REQUIREMENT: Nút xáo thứ tự dùng chung cho từng bài, part, hoặc all */}
+          <button
+            onClick={handleShuffleDeck}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 ${
+              isShuffled
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/20'
+                : 'bg-white hover:bg-rose-50 text-gray-700 hover:text-rose-600 border-gray-200'
+            }`}
+            title="Xáo trộn ngẫu nhiên thứ tự thẻ từ vựng (tránh nhớ theo form bài)"
+          >
+            <Shuffle className="w-3.5 h-3.5" />
+            <span className="text-[11px]">{isShuffled ? 'Đảo lại' : 'Xáo trộn'}</span>
+          </button>
+
+          {isShuffled && (
+            <button
+              onClick={handleResetDeckOrder}
+              className="px-2 py-1 rounded-lg text-[10px] font-semibold text-gray-500 hover:text-gray-800 bg-gray-150 hover:bg-gray-200 transition-colors cursor-pointer"
+              title="Khôi phục thứ tự chuẩn sách Minna"
+            >
+              Theo sách
+            </button>
+          )}
 
           <button
             onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-            className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border transition-all text-xs cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all text-xs cursor-pointer ${
               isAutoPlaying
                 ? 'bg-rose-600 text-white border-rose-600 shadow-xs animate-pulse'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -277,14 +328,6 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           >
             {isAutoPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
             <span className="text-[11px]">Auto</span>
-          </button>
-
-          <button
-            onClick={handleShuffle}
-            className="p-1 sm:p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors cursor-pointer"
-            title="Xáo trộn thứ tự thẻ"
-          >
-            <Shuffle className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -350,7 +393,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
                 Minna No Nihongo
               </span>
               <span className="text-[10px] sm:text-[11px] font-medium text-gray-400">
-                # {currentItem.id}
+                # {currentItem.id} {isShuffled && '• 🔀 Đã xáo'}
               </span>
             </div>
           </div>
@@ -412,7 +455,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons: USER REQUIREMENT - khi lọc 'Từ phân vân' thì chỉ còn 2 trạng thái (Chưa nhớ / Đã nhớ), xả lọc mới đủ đầy 3 nút */}
+      {/* Action Buttons: Khi lọc 'Từ phân vân' thì chỉ còn 2 trạng thái (Chưa nhớ / Đã nhớ), xả lọc mới đủ đầy 3 nút */}
       {statusFilter === 'hesitant' ? (
         <div className="grid grid-cols-2 gap-2.5 pt-0.5">
           <button
@@ -500,7 +543,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       <div className="flex items-center justify-between pt-1">
         <button
           onClick={handlePrev}
-          disabled={items.length <= 1}
+          disabled={deck.length <= 1}
           className="flex items-center gap-1 px-3 sm:px-4 py-2 bg-white text-gray-700 font-bold text-xs rounded-xl border border-gray-200 hover:bg-gray-50 active:scale-95 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -516,7 +559,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
         <button
           onClick={handleNext}
-          disabled={items.length <= 1}
+          disabled={deck.length <= 1}
           className="flex items-center gap-1 px-3 sm:px-4 py-2 bg-white text-gray-700 font-bold text-xs rounded-xl border border-gray-200 hover:bg-gray-50 active:scale-95 disabled:opacity-40 transition-all shadow-xs cursor-pointer"
         >
           <span>Sau</span>
@@ -527,11 +570,12 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       {/* Mobile touch hint and desktop keyboard hint */}
       <div className="text-center text-[10px] sm:text-[11px] text-gray-400 pt-1 pb-16 sm:pb-4">
         <span className="sm:hidden">
-          💡 Mẹo vuốt trên điện thoại: <strong>Vuốt trái / phải</strong> để chuyển thẻ • <strong>Chạm</strong> để lật thẻ
+          💡 Mẹo vuốt: <strong>Vuốt trái / phải</strong> chuyển thẻ • <strong>Chạm</strong> lật thẻ • Bấm <strong>Xáo trộn</strong> để đổi thứ tự
         </span>
         <span className="hidden sm:inline">
           Phím tắt: <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">Space</kbd> Lật • 
           <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono ml-1">← / →</kbd> Chuyển thẻ • 
+          <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono ml-1">R</kbd> Xáo trộn • 
           <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono ml-1">1, 2, 3</kbd> Đánh giá
         </span>
       </div>
