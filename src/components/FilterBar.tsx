@@ -8,7 +8,8 @@ import {
   BookMarked,
   CheckCircle2,
   CircleDashed,
-  LayoutGrid
+  LayoutGrid,
+  HelpCircle
 } from 'lucide-react';
 
 interface FilterBarProps {
@@ -18,6 +19,7 @@ interface FilterBarProps {
   kanjiCount: number;
   masteredCount: number;
   unmasteredCount: number;
+  hesitantCount: number;
   starredCount: number;
 }
 
@@ -28,6 +30,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   kanjiCount,
   masteredCount,
   unmasteredCount,
+  hesitantCount,
   starredCount,
 }) => {
   // Lessons available based on selected Part
@@ -170,6 +173,27 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 : 'bg-emerald-200 text-emerald-900'
             }`}>
               {masteredCount}
+            </span>
+          </button>
+
+          {/* USER REQUEST: BỘ LỌC "TỪ PHÂN VÂN" (để check lại xem đã thực sự thuộc chưa) */}
+          <button
+            onClick={() => handleStatusFilter('hesitant')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
+              filter.statusFilter === 'hesitant'
+                ? 'bg-amber-600 border-amber-600 text-white ring-2 ring-amber-300 shadow-xs'
+                : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+            }`}
+            title="Chỉ hiển thị các từ còn phân vân để kiểm tra lại"
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>Từ phân vân</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+              filter.statusFilter === 'hesitant'
+                ? 'bg-white text-amber-700'
+                : 'bg-amber-200 text-amber-900'
+            }`}>
+              {hesitantCount}
             </span>
           </button>
 

@@ -247,6 +247,12 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
               Từ đã nhớ
             </span>
           )}
+          {statusFilter === 'hesitant' && (
+            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold border border-amber-300">
+              <span>🤔</span>
+              Kiểm tra từ phân vân
+            </span>
+          )}
           {statusFilter === 'unmastered' && (
             <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold border border-red-300">
               <CircleDashed className="w-3 h-3 text-red-600" />
@@ -406,59 +412,89 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons: Đánh giá mức độ ghi nhớ */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-2.5 pt-0.5">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (currentItem) onMarkStatus(currentItem.id, 'learning');
-            handleNext();
-          }}
-          className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl border transition-all active:scale-95 cursor-pointer ${
-            isLearning
-              ? 'bg-red-50 border-red-300 text-red-700 ring-2 ring-red-400'
-              : 'bg-white border-gray-200 text-gray-700 hover:border-red-200 hover:bg-red-50/50 shadow-xs'
-          }`}
-        >
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-red-600 mb-0.5">
-            <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span>Chưa nhớ</span>
-          </div>
-          <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium">Ôn lại sớm</span>
-        </button>
+      {/* Action Buttons: USER REQUIREMENT - khi lọc 'Từ phân vân' thì chỉ còn 2 trạng thái (Chưa nhớ / Đã nhớ), xả lọc mới đủ đầy 3 nút */}
+      {statusFilter === 'hesitant' ? (
+        <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (currentItem) onMarkStatus(currentItem.id, 'learning');
+              handleNext();
+            }}
+            className="flex flex-col items-center justify-center p-3 rounded-2xl border border-red-200 bg-red-50/60 text-red-700 hover:bg-red-100/70 shadow-xs transition-all active:scale-95 cursor-pointer"
+          >
+            <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-0.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Chưa nhớ</span>
+            </div>
+            <span className="text-[10px] text-gray-500 font-medium">Vẫn chưa thuộc từ này</span>
+          </button>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (currentItem) onMarkStatus(currentItem.id, 'unseen');
-            handleNext();
-          }}
-          className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-white border border-gray-200 text-gray-700 hover:border-amber-200 hover:bg-amber-50/50 shadow-xs transition-all active:scale-95 cursor-pointer"
-        >
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-600 mb-0.5">
-            <span>🤔</span>
-            <span>Phân vân</span>
-          </div>
-          <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium">Học tiếp</span>
-        </button>
+          <button
+            onClick={handleMarkMastered}
+            className="flex flex-col items-center justify-center p-3 rounded-2xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 shadow-xs transition-all active:scale-95 cursor-pointer ring-1 ring-emerald-300"
+          >
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 mb-0.5">
+              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Đã nhớ</span>
+            </div>
+            <span className="text-[10px] text-emerald-600 font-medium">Xác nhận đã thuộc</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:gap-2.5 pt-0.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (currentItem) onMarkStatus(currentItem.id, 'unseen');
+              handleNext();
+            }}
+            className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl bg-white border border-gray-200 text-gray-700 hover:border-red-200 hover:bg-red-50/50 shadow-xs transition-all active:scale-95 cursor-pointer"
+          >
+            <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-red-600 mb-0.5">
+              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span>Chưa nhớ</span>
+            </div>
+            <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium">Ôn lại sớm</span>
+          </button>
 
-        <button
-          onClick={handleMarkMastered}
-          className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl border transition-all active:scale-95 cursor-pointer ${
-            isMastered
-              ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-400'
-              : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50/50 shadow-xs'
-          }`}
-        >
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-600 mb-0.5">
-            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span>Đã nhớ</span>
-          </div>
-          <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium">
-            Thuộc từ này
-          </span>
-        </button>
-      </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (currentItem) onMarkStatus(currentItem.id, 'learning');
+              handleNext();
+            }}
+            className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl border transition-all active:scale-95 cursor-pointer ${
+              isLearning
+                ? 'bg-amber-100 border-amber-300 text-amber-900 ring-2 ring-amber-300 shadow-xs'
+                : 'bg-amber-50/70 border-amber-200 text-amber-800 hover:bg-amber-100/80 shadow-xs'
+            }`}
+          >
+            <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-700 mb-0.5">
+              <span>🤔</span>
+              <span>Phân vân</span>
+            </div>
+            <span className="text-[9px] sm:text-[10px] text-amber-600 font-medium">Lưu vào Phân vân</span>
+          </button>
+
+          <button
+            onClick={handleMarkMastered}
+            className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl border transition-all active:scale-95 cursor-pointer ${
+              isMastered
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-400'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50/50 shadow-xs'
+            }`}
+          >
+            <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-600 mb-0.5">
+              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span>Đã nhớ</span>
+            </div>
+            <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium">
+              Thuộc từ này
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Navigation Buttons */}
       <div className="flex items-center justify-between pt-1">

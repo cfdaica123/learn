@@ -150,11 +150,14 @@ export default function App() {
         return false;
       }
 
-      // USER REQUIREMENT: Hiển thị những từ đã nhớ hoặc những từ chưa nhớ
+      // USER REQUIREMENT: Hiển thị những từ đã nhớ, từ phân vân, hoặc những từ chưa nhớ
       if (filter.statusFilter === 'mastered' && !masteredIds.has(item.id)) {
         return false;
       }
-      if (filter.statusFilter === 'unmastered' && masteredIds.has(item.id)) {
+      if (filter.statusFilter === 'hesitant' && !learningIds.has(item.id)) {
+        return false;
+      }
+      if (filter.statusFilter === 'unmastered' && (masteredIds.has(item.id) || learningIds.has(item.id))) {
         return false;
       }
 
@@ -177,7 +180,7 @@ export default function App() {
 
       return true;
     });
-  }, [filter, masteredIds, starredIds]);
+  }, [filter, masteredIds, learningIds, starredIds]);
 
   // Statistics in current Part / Lesson scope
   const wordsInScope = useMemo(() => {
@@ -196,9 +199,13 @@ export default function App() {
     return wordsInScope.filter((item) => masteredIds.has(item.id)).length;
   }, [wordsInScope, masteredIds]);
 
+  const hesitantCountInCurrentScope = useMemo(() => {
+    return wordsInScope.filter((item) => learningIds.has(item.id)).length;
+  }, [wordsInScope, learningIds]);
+
   const unmasteredCountInCurrentScope = useMemo(() => {
-    return wordsInScope.length - masteredCountInCurrentScope;
-  }, [wordsInScope.length, masteredCountInCurrentScope]);
+    return wordsInScope.length - masteredCountInCurrentScope - hesitantCountInCurrentScope;
+  }, [wordsInScope.length, masteredCountInCurrentScope, hesitantCountInCurrentScope]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-gray-900 flex flex-col antialiased">
@@ -214,7 +221,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-4 py-3 sm:py-8">
-        {/* Filter Controls (Part 1/2, Bài, Từ đã nhớ, Từ chưa nhớ, Lọc Hán tự) */}
+        {/* Filter Controls (Part 1/2, Bài, Từ đã nhớ, Từ phân vân, Từ chưa nhớ, Lọc Hán tự) */}
         <FilterBar
           filter={filter}
           onFilterChange={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
@@ -222,6 +229,7 @@ export default function App() {
           kanjiCount={kanjiCountInCurrentScope}
           masteredCount={masteredCountInCurrentScope}
           unmasteredCount={unmasteredCountInCurrentScope}
+          hesitantCount={hesitantCountInCurrentScope}
           starredCount={starredIds.size}
         />
 

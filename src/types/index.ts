@@ -12,7 +12,7 @@ export interface VocabularyItem {
 
 export type StudyMode = 'flashcard' | 'quiz' | 'list';
 
-export type WordStatusFilter = 'all' | 'mastered' | 'unmastered';
+export type WordStatusFilter = 'all' | 'mastered' | 'unmastered' | 'hesitant';
 
 export interface FilterState {
   part: 'all' | 1 | 2;
