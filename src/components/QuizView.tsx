@@ -327,38 +327,24 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
           )}
         </div>
 
-        {/* Dynamic Question Prompt */}
-        <div className="my-5 sm:my-7 space-y-2 min-h-[70px] flex flex-col justify-center items-center">
+        {/* Dynamic Question Prompt: KHÔNG GỢI Ý GÌ CẢ (Không hiện nghĩa, không hiện Hán-Việt) */}
+        <div className="my-6 sm:my-8 min-h-[70px] flex flex-col justify-center items-center">
           {quizType === 'kanjiTrap' ? (
-            <>
-              {/* Question gives Hiragana and user chooses the real Kanji among lookalikes */}
-              <h2 className="text-3xl sm:text-5xl font-black text-rose-600 tracking-wider font-japanese break-words selection:bg-rose-100">
-                {item.hiragana}
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-600 font-semibold">
-                Nghĩa: {item.meaning} {item.hanViet && `(Hán Việt: ${item.hanViet})`}
-              </p>
-            </>
+            <h2 className="text-3xl sm:text-5xl font-black text-rose-600 tracking-wider font-japanese break-words selection:bg-rose-100">
+              {item.hiragana}
+            </h2>
           ) : (
-            <>
-              {/* Other modes: prioritize showing Kanji only without hiragana spoiler */}
-              <h2 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-wide font-japanese break-words selection:bg-rose-100">
-                {item.word}
-              </h2>
-              {quizType === 'hiraganaTrap' && (
-                <p className="text-xs sm:text-sm text-gray-600 font-semibold">
-                  Nghĩa: {item.meaning} {item.hanViet && `(Hán Việt: ${item.hanViet})`}
-                </p>
-              )}
-            </>
+            <h2 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-wide font-japanese break-words selection:bg-rose-100">
+              {item.word}
+            </h2>
           )}
         </div>
 
         <p className="text-xs text-gray-400 font-medium">
           {quizType === 'kanjiTrap'
-            ? '🎯 Chọn đúng chữ Hán (Kanji) trong các chữ bẫy nét na ná nhau:'
+            ? '🎯 Chọn đúng chữ Hán (Kanji):'
             : quizType === 'hiraganaTrap'
-            ? '🪤 Chọn đúng cách đọc Hiragana (cẩn thận bẫy âm đục, âm ngắt, trường âm!):'
+            ? '🪤 Chọn đúng cách đọc Hiragana:'
             : quizType === 'hanViet'
             ? 'Chọn đúng âm Hán - Việt của từ trên:'
             : 'Chọn nghĩa tiếng Việt chính xác:'}

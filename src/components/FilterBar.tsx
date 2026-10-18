@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { FilterState, WordStatusFilter } from '../types';
 import { 
   Layers, 
@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   CircleDashed,
   LayoutGrid,
-  HelpCircle
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface FilterBarProps {
@@ -45,6 +47,35 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   const currentLessons = getLessonsForPart();
+  const lessonScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll active lesson into view
+  useEffect(() => {
+    if (filter.lesson !== 'all' && lessonScrollRef.current) {
+      const activeEl = lessonScrollRef.current.querySelector<HTMLElement>(`[data-lesson="${filter.lesson}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [filter.lesson]);
+
+  const handleScrollLeft = () => {
+    if (lessonScrollRef.current) {
+      lessonScrollRef.current.scrollBy({ left: -240, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (lessonScrollRef.current) {
+      lessonScrollRef.current.scrollBy({ left: 240, behavior: 'smooth' });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (lessonScrollRef.current && e.deltaY !== 0) {
+      lessonScrollRef.current.scrollLeft += e.deltaY * 1.2;
+    }
+  };
 
   const handleStatusFilter = (status: WordStatusFilter) => {
     // If clicking the currently active status, toggle back to 'all'
@@ -105,34 +136,59 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
       </div>
 
-      {/* Row 2: Touch Horizontal Scroller for Lessons */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 touch-pan-x">
-        <span className="text-[11px] sm:text-xs font-semibold text-gray-400 whitespace-nowrap flex items-center gap-1 shrink-0">
-          <BookMarked className="w-3 h-3" /> Bài:
-        </span>
+      {/* Row 2: Touch & Mouse Horizontal Scroller for Lessons with Navigation Arrows */}
+      <div className="flex items-center gap-1.5 w-full">
         <button
-          onClick={() => onFilterChange({ lesson: 'all' })}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors shrink-0 cursor-pointer ${
-            filter.lesson === 'all'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          onClick={handleScrollLeft}
+          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95"
+          title="Cuộn sang các bài trước"
+          type="button"
         >
-          Tất cả {filter.part !== 'all' ? `P${filter.part}` : ''}
+          <ChevronLeft className="w-3.5 h-3.5" />
         </button>
-        {currentLessons.map((l) => (
+
+        <div 
+          ref={lessonScrollRef}
+          onWheel={handleWheel}
+          className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 touch-pan-x flex-1 scroll-smooth no-scrollbar"
+        >
+          <span className="text-[11px] sm:text-xs font-semibold text-gray-400 whitespace-nowrap flex items-center gap-1 shrink-0">
+            <BookMarked className="w-3 h-3" /> Bài:
+          </span>
           <button
-            key={l}
-            onClick={() => onFilterChange({ lesson: l })}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 active:scale-95 cursor-pointer ${
-              filter.lesson === l
-                ? 'bg-rose-600 text-white shadow-xs font-bold'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            onClick={() => onFilterChange({ lesson: 'all' })}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors shrink-0 cursor-pointer ${
+              filter.lesson === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            B.{l}
+            Tất cả {filter.part !== 'all' ? `P${filter.part}` : ''}
           </button>
-        ))}
+          {currentLessons.map((l) => (
+            <button
+              key={l}
+              data-lesson={l}
+              onClick={() => onFilterChange({ lesson: l })}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 active:scale-95 cursor-pointer ${
+                filter.lesson === l
+                  ? 'bg-rose-600 text-white shadow-xs font-bold'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              B.{l}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={handleScrollRight}
+          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 shadow-xs cursor-pointer active:scale-95"
+          title="Cuộn sang các bài sau"
+          type="button"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Row 3: USER REQUEST: 2 NÚT "TỪ ĐÃ NHỚ" & "TỪ CHƯA NHỚ" + LỌC KANJI + TÌM KIẾM */}
