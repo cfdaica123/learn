@@ -21,6 +21,7 @@ export default function App() {
   const [filter, setFilter] = useState<FilterState>({
     part: 'all',
     lesson: 'all',
+    selectedLessons: [],
     kanjiOnly: false,
     statusFilter: 'all', // 'all' | 'mastered' (Từ đã nhớ) | 'unmastered' (Từ chưa nhớ)
     starredOnly: false,
@@ -152,6 +153,7 @@ export default function App() {
     setFilter({
       part: 'all',
       lesson: 'all',
+      selectedLessons: [],
       kanjiOnly: false,
       statusFilter: 'all',
       starredOnly: false,
@@ -163,14 +165,21 @@ export default function App() {
   // Filter application
   const filteredVocabulary = useMemo(() => {
     return ALL_VOCABULARY.filter((item) => {
-      // Part Filter
-      if (filter.part !== 'all' && item.part !== filter.part) {
-        return false;
-      }
+      // Multi-lesson Filter (Ưu tiên nếu có chọn tổ hợp nhiều bài)
+      if (filter.selectedLessons && filter.selectedLessons.length > 0) {
+        if (!filter.selectedLessons.includes(item.lesson)) {
+          return false;
+        }
+      } else {
+        // Part Filter
+        if (filter.part !== 'all' && item.part !== filter.part) {
+          return false;
+        }
 
-      // Lesson Filter
-      if (filter.lesson !== 'all' && item.lesson !== filter.lesson) {
-        return false;
+        // Single Lesson Filter
+        if (filter.lesson !== 'all' && item.lesson !== filter.lesson) {
+          return false;
+        }
       }
 
       // Kanji Only Filter (Lọc ra những từ có Hán tự)
@@ -213,11 +222,14 @@ export default function App() {
   // Statistics in current Part / Lesson scope
   const wordsInScope = useMemo(() => {
     return ALL_VOCABULARY.filter((item) => {
+      if (filter.selectedLessons && filter.selectedLessons.length > 0) {
+        return filter.selectedLessons.includes(item.lesson);
+      }
       if (filter.part !== 'all' && item.part !== filter.part) return false;
       if (filter.lesson !== 'all' && item.lesson !== filter.lesson) return false;
       return true;
     });
-  }, [filter.part, filter.lesson]);
+  }, [filter.part, filter.lesson, filter.selectedLessons]);
 
   const kanjiCountInCurrentScope = useMemo(() => {
     return wordsInScope.filter((item) => item.hasKanji).length;
@@ -281,7 +293,7 @@ export default function App() {
         {currentMode === 'quiz' && (
           <QuizView
             items={filteredVocabulary}
-            scopeKey={`${filter.part}_${filter.lesson}_${filter.kanjiOnly}`}
+            scopeKey={`${filter.part}_${filter.lesson}_${(filter.selectedLessons || []).slice().sort((a, b) => a - b).join('-')}_${filter.kanjiOnly}`}
             onMarkMastered={(id) => handleMarkStatus(id, 'mastered')}
           />
         )}

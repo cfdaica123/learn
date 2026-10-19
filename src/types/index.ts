@@ -17,6 +17,7 @@ export type WordStatusFilter = 'all' | 'mastered' | 'unmastered' | 'hesitant';
 export interface FilterState {
   part: 'all' | 1 | 2;
   lesson: number | 'all';
+  selectedLessons: number[]; // e.g. [1, 2, 3] for multi-lesson selection; empty means all or controlled by lesson/part
   kanjiOnly: boolean; // Lọc ra những từ có Hán tự
   statusFilter: WordStatusFilter; // 'all' | 'mastered' (Từ đã nhớ) | 'unmastered' (Từ chưa nhớ)
   starredOnly: boolean; // Chỉ những từ đánh dấu sao
