@@ -56,6 +56,26 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
     });
   }, [currentLevel, activeTabLesson, selectedLessons, currentLesson, searchQuery]);
 
+  // Sync active lesson when parent filter changes
+  React.useEffect(() => {
+    if (selectedLessons.length === 1) {
+      setActiveTabLesson(selectedLessons[0]);
+    } else if (currentLesson !== 'all') {
+      setActiveTabLesson(currentLesson);
+    } else if (selectedLessons.length === 0) {
+      setActiveTabLesson('all');
+    }
+  }, [currentLesson, selectedLessons]);
+
+  // Lessons list based on level
+  const lessonList = useMemo(() => {
+    const list: number[] = [];
+    for (let i = startLesson; i <= endLesson; i++) {
+      list.push(i);
+    }
+    return list;
+  }, [startLesson, endLesson]);
+
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
       
@@ -66,7 +86,7 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold mb-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Ngữ Pháp Minna no Nihongo {currentLevel}</span>
+              <span>Ngữ Pháp Minna no Nihongo {currentLevel} (Bài {startLesson} - {endLesson})</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">
               Giải Thích Ngữ Pháp Chi Tiết
@@ -85,54 +105,51 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
 
       {/* Search & Quick Lesson Selector */}
       <div className="bg-white rounded-2xl p-3 sm:p-4 border border-rose-100 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          {/* Search Box */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm mẫu ngữ pháp, từ khóa, ý nghĩa..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-rose-500 focus:bg-white transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Scope indicator */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        {/* Search Box */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm kiếm mẫu ngữ pháp, cấu trúc (vd: から, ても, たら, ないで), từ khóa, ý nghĩa..."
+            className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-rose-500 focus:bg-white transition-all"
+          />
+          {searchQuery && (
             <button
-              onClick={() => setActiveTabLesson('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
-                activeTabLesson === 'all'
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Horizontal Scrollable Lesson List */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 text-xs">
+          <button
+            onClick={() => setActiveTabLesson('all')}
+            className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+              activeTabLesson === 'all'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tất cả bài
+          </button>
+          {lessonList.map((lNum) => (
+            <button
+              key={lNum}
+              onClick={() => setActiveTabLesson(lNum)}
+              className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
+                activeTabLesson === lNum
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Tất cả bài
+              Bài {lNum}
             </button>
-            {/* Show lessons 1, 2, 3 as quick pill buttons */}
-            {[1, 2, 3, 4, 5].map((lNum) => (
-              <button
-                key={lNum}
-                onClick={() => setActiveTabLesson(lNum)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
-                  activeTabLesson === lNum
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Bài {lNum}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
 
