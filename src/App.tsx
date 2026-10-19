@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ALL_VOCABULARY } from './data/vocabulary';
-import { FilterState, StudyMode, WordStatusFilter } from './types';
+import { FilterState, StudyMode, WordStatusFilter, JLPTLevel } from './types';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
 import { FlashcardView } from './components/FlashcardView';
 import { QuizView } from './components/QuizView';
 import { WordListView } from './components/WordListView';
+import { GrammarView } from './components/GrammarView';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
-import { Check } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const STORAGE_KEY_MASTERED = 'minna_mastered_words';
 const STORAGE_KEY_LEARNING = 'minna_learning_words';
@@ -16,14 +17,16 @@ const STORAGE_KEY_STARRED = 'minna_starred_words';
 
 export default function App() {
   const [currentMode, setCurrentMode] = useState<StudyMode>('flashcard');
+  const [currentLevel, setCurrentLevel] = useState<JLPTLevel>('N5');
 
   // Filter state
   const [filter, setFilter] = useState<FilterState>({
+    level: 'N5',
     part: 'all',
     lesson: 'all',
     selectedLessons: [],
     kanjiOnly: false,
-    statusFilter: 'all', // 'all' | 'mastered' (Từ đã nhớ) | 'unmastered' (Từ chưa nhớ)
+    statusFilter: 'all', // 'all' | 'mastered' (Từ đã nhớ) | 'unmastered' (Từ chưa nhớ) | 'hesitant'
     starredOnly: false,
     searchQuery: '',
   });
@@ -80,6 +83,21 @@ export default function App() {
       console.error(e);
     }
   }, [starredIds]);
+
+  // Level switcher handler
+  const handleSelectLevel = (newLevel: JLPTLevel) => {
+    if (newLevel === currentLevel) return;
+    setCurrentLevel(newLevel);
+    setFilter((prev) => ({
+      ...prev,
+      level: newLevel,
+      part: 'all',
+      lesson: 'all',
+      selectedLessons: [],
+      searchQuery: '',
+    }));
+    showToast(`Đã chuyển sang cấp độ Minna ${newLevel} (${newLevel === 'N5' ? 'Bài 1-25' : 'Bài 26-50'})!`);
+  };
 
   // Status handlers
   const handleMarkStatus = (id: string, status: 'mastered' | 'learning' | 'unseen') => {
@@ -151,6 +169,7 @@ export default function App() {
     setLearningIds(new Set());
     setStarredIds(new Set());
     setFilter({
+      level: currentLevel,
       part: 'all',
       lesson: 'all',
       selectedLessons: [],
@@ -162,9 +181,13 @@ export default function App() {
     showToast('Đã xóa toàn bộ bộ nhớ cache! Ứng dụng đã trở về trạng thái ban đầu.');
   };
 
-  // Filter application
+  // Filter application: only words matching current JLPT Level
+  const levelVocabulary = useMemo(() => {
+    return ALL_VOCABULARY.filter((item) => (item.level || 'N5') === currentLevel);
+  }, [currentLevel]);
+
   const filteredVocabulary = useMemo(() => {
-    return ALL_VOCABULARY.filter((item) => {
+    return levelVocabulary.filter((item) => {
       // Multi-lesson Filter (Ưu tiên nếu có chọn tổ hợp nhiều bài)
       if (filter.selectedLessons && filter.selectedLessons.length > 0) {
         if (!filter.selectedLessons.includes(item.lesson)) {
@@ -217,11 +240,11 @@ export default function App() {
 
       return true;
     });
-  }, [filter, masteredIds, learningIds, starredIds]);
+  }, [levelVocabulary, filter, masteredIds, learningIds, starredIds]);
 
   // Statistics in current Part / Lesson scope
   const wordsInScope = useMemo(() => {
-    return ALL_VOCABULARY.filter((item) => {
+    return levelVocabulary.filter((item) => {
       if (filter.selectedLessons && filter.selectedLessons.length > 0) {
         return filter.selectedLessons.includes(item.lesson);
       }
@@ -229,7 +252,7 @@ export default function App() {
       if (filter.lesson !== 'all' && item.lesson !== filter.lesson) return false;
       return true;
     });
-  }, [filter.part, filter.lesson, filter.selectedLessons]);
+  }, [levelVocabulary, filter.part, filter.lesson, filter.selectedLessons]);
 
   const kanjiCountInCurrentScope = useMemo(() => {
     return wordsInScope.filter((item) => item.hasKanji).length;
@@ -253,58 +276,95 @@ export default function App() {
       <Header
         currentMode={currentMode}
         onSelectMode={setCurrentMode}
+        currentLevel={currentLevel}
+        onSelectLevel={handleSelectLevel}
         totalFilteredCount={filteredVocabulary.length}
         masteredCount={masteredIds.size}
-        totalVocabularyCount={ALL_VOCABULARY.length}
+        totalVocabularyCount={levelVocabulary.length}
         onResetProgress={() => setIsResetModalOpen(true)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-4 py-3 sm:py-8">
-        {/* Filter Controls (Part 1/2, Bài, Từ đã nhớ, Từ phân vân, Từ chưa nhớ, Lọc Hán tự) */}
-        <FilterBar
-          filter={filter}
-          onFilterChange={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
-          totalAvailable={filteredVocabulary.length}
-          kanjiCount={kanjiCountInCurrentScope}
-          masteredCount={masteredCountInCurrentScope}
-          unmasteredCount={unmasteredCountInCurrentScope}
-          hesitantCount={hesitantCountInCurrentScope}
-          starredCount={starredIds.size}
-          onResetAllData={() => setIsResetModalOpen(true)}
-        />
+      <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-4 py-3 sm:py-6">
+        
+        {/* Filter Controls (Shown in Flashcard, Quiz, List modes) */}
+        {currentMode !== 'grammar' && (
+          <FilterBar
+            filter={filter}
+            onFilterChange={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
+            totalAvailable={filteredVocabulary.length}
+            kanjiCount={kanjiCountInCurrentScope}
+            masteredCount={masteredCountInCurrentScope}
+            unmasteredCount={unmasteredCountInCurrentScope}
+            hesitantCount={hesitantCountInCurrentScope}
+            starredCount={starredIds.size}
+            onResetAllData={() => setIsResetModalOpen(true)}
+          />
+        )}
 
         {/* View Mode Switching */}
-        {currentMode === 'flashcard' && (
-          <FlashcardView
-            items={filteredVocabulary}
-            masteredIds={masteredIds}
-            learningIds={learningIds}
-            starredIds={starredIds}
-            onMarkStatus={handleMarkStatus}
-            onToggleStar={handleToggleStar}
-            statusFilter={filter.statusFilter}
-            onSelectStatusFilter={(st) =>
-              setFilter((prev) => ({ ...prev, statusFilter: st }))
-            }
-          />
+        {currentLevel === 'N4' && levelVocabulary.length === 0 && currentMode !== 'grammar' ? (
+          <div className="bg-white rounded-3xl p-8 sm:p-12 text-center shadow-xs border border-rose-100 max-w-xl mx-auto my-6 sm:my-8 space-y-4">
+            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-rose-200">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+              Chưa có dữ liệu từ vựng N4
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+              Khung chức năng Bài 26 - 50 đã sẵn sàng. Khi bạn gửi data từ vựng N4 ở các lời nhắc tiếp theo, toàn bộ thẻ flashcard và bài kiểm tra trắc nghiệm sẽ hoạt động ngay lập tức!
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={() => handleSelectLevel('N5')}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+              >
+                <span>Học từ vựng N5 (Bài 1 - 25)</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {currentMode === 'flashcard' && (
+              <FlashcardView
+                items={filteredVocabulary}
+                masteredIds={masteredIds}
+                learningIds={learningIds}
+                starredIds={starredIds}
+                onMarkStatus={handleMarkStatus}
+                onToggleStar={handleToggleStar}
+                statusFilter={filter.statusFilter}
+                onSelectStatusFilter={(st) =>
+                  setFilter((prev) => ({ ...prev, statusFilter: st }))
+                }
+              />
+            )}
+
+            {currentMode === 'quiz' && (
+              <QuizView
+                items={filteredVocabulary}
+                scopeKey={`${currentLevel}_${filter.part}_${filter.lesson}_${(filter.selectedLessons || []).slice().sort((a, b) => a - b).join('-')}_${filter.kanjiOnly}`}
+                onMarkMastered={(id) => handleMarkStatus(id, 'mastered')}
+              />
+            )}
+
+            {currentMode === 'list' && (
+              <WordListView
+                items={filteredVocabulary}
+                masteredIds={masteredIds}
+                starredIds={starredIds}
+                onToggleMastered={handleToggleMastered}
+                onToggleStar={handleToggleStar}
+              />
+            )}
+          </>
         )}
 
-        {currentMode === 'quiz' && (
-          <QuizView
-            items={filteredVocabulary}
-            scopeKey={`${filter.part}_${filter.lesson}_${(filter.selectedLessons || []).slice().sort((a, b) => a - b).join('-')}_${filter.kanjiOnly}`}
-            onMarkMastered={(id) => handleMarkStatus(id, 'mastered')}
-          />
-        )}
-
-        {currentMode === 'list' && (
-          <WordListView
-            items={filteredVocabulary}
-            masteredIds={masteredIds}
-            starredIds={starredIds}
-            onToggleMastered={handleToggleMastered}
-            onToggleStar={handleToggleStar}
+        {currentMode === 'grammar' && (
+          <GrammarView
+            currentLevel={currentLevel}
+            selectedLessons={filter.selectedLessons}
+            currentLesson={filter.lesson}
           />
         )}
       </main>
@@ -316,10 +376,27 @@ export default function App() {
         filteredCount={filteredVocabulary.length}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200/60 bg-white py-3 sm:py-4 mt-auto mb-14 md:mb-0">
-        <div className="max-w-6xl mx-auto px-4 text-center text-xs font-semibold text-gray-600">
-          <span>iBeos - 山 - cps - 🥕</span>
+      {/* Footer with stylized mountain theme & iBeos capsule */}
+      <footer className="border-t border-gray-200/60 bg-white py-3.5 sm:py-4 mt-auto mb-14 md:mb-0">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left text-xs font-semibold text-gray-600">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-gray-900 tracking-tight flex items-center gap-1">
+              <span>Yama Nihongo</span>
+              <span className="text-rose-600 font-bold font-japanese">山</span>
+            </span>
+            <span className="text-gray-300">•</span>
+            <span className="text-gray-500 font-normal">Học Từ vựng & Ngữ pháp Minna (N5 - N4)</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50/90 border border-rose-200/70 text-[11px] font-bold text-rose-700 shadow-2xs">
+            <span>iBeos</span>
+            <span className="text-rose-300">•</span>
+            <span className="font-black text-rose-900">山</span>
+            <span className="text-rose-300">•</span>
+            <span>cps</span>
+            <span className="text-rose-300">•</span>
+            <span>🥕</span>
+          </div>
         </div>
       </footer>
 

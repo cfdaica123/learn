@@ -1302,10 +1302,14 @@ export const RAW_VOCABULARY: Omit<VocabularyItem, 'part' | 'hasKanji'>[] = [
 ];
 
 export const ALL_VOCABULARY: VocabularyItem[] = RAW_VOCABULARY.map((item) => {
-  const part: 1 | 2 = item.lesson <= 15 ? 1 : 2;
+  const level = item.level || (item.lesson <= 25 ? 'N5' : 'N4');
+  const part: 1 | 2 = level === 'N5' 
+    ? (item.lesson <= 15 ? 1 : 2)
+    : (item.lesson <= 37 ? 1 : 2);
   const hasKanji = item.hanViet.trim().length > 0 || containsKanji(item.word);
   return {
     ...item,
+    level,
     part,
     hasKanji,
   };

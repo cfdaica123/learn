@@ -167,6 +167,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     onFilterChange({ selectedLessons: range, lesson: 'all', part: 'all' });
   };
 
+  const currentLevel = filter.level || 'N5';
+  const startLesson = currentLevel === 'N5' ? 1 : 26;
+  const endLesson = currentLevel === 'N5' ? 25 : 50;
+  const totalLessons = 25;
+  const part1Label = currentLevel === 'N5' ? 'Part 1 (1-15)' : 'Part 1 (26-37)';
+  const part2Label = currentLevel === 'N5' ? 'Part 2 (16-25)' : 'Part 2 (38-50)';
+
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 mb-4 sm:mb-6 select-none" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
       
@@ -183,7 +190,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       >
         <span className="text-xs font-bold text-gray-500 whitespace-nowrap flex items-center gap-1 shrink-0 mr-1 pointer-events-none select-none">
           <BookMarked className="w-3.5 h-3.5 text-rose-500" />
-          Bài:
+          Bài ({currentLevel}):
         </span>
 
         {/* Option: Cả 25 Bài */}
@@ -202,10 +209,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          Cả 25 Bài
+          Cả 25 Bài ({currentLevel})
         </button>
 
-        {/* Option: Part 1 (1-15) */}
+        {/* Option: Part 1 */}
         <button
           type="button"
           data-scope="part1"
@@ -221,10 +228,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          Part 1 (1-15)
+          {part1Label}
         </button>
 
-        {/* Option: Part 2 (16-25) */}
+        {/* Option: Part 2 */}
         <button
           type="button"
           data-scope="part2"
@@ -240,7 +247,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          Part 2 (16-25)
+          {part2Label}
         </button>
 
         <span className="w-px h-4 bg-gray-200 mx-1 shrink-0 pointer-events-none" />
@@ -267,15 +274,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           type="button"
           onClick={() => setIsModalOpen(true)}
           className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 cursor-pointer active:scale-95"
-          title="Mở bảng chọn nhanh 25 bài học"
+          title={`Mở bảng chọn nhanh 25 bài học (${currentLevel})`}
         >
           <SlidersHorizontal className="w-3.5 h-3.5 text-gray-700" />
         </button>
 
         <span className="w-px h-4 bg-gray-200 mx-1 shrink-0 pointer-events-none" />
 
-        {/* Individual Lessons 1 to 25 */}
-        {Array.from({ length: 25 }, (_, i) => i + 1).map((l) => {
+        {/* Individual Lessons */}
+        {Array.from({ length: totalLessons }, (_, i) => startLesson + i).map((l) => {
           const isSelectedInMulti = isMultiMode && selectedLessons.includes(l);
           const isSelectedInSingle = !isMultiMode && filter.lesson === l;
           const isActive = isSelectedInMulti || isSelectedInSingle;
@@ -299,64 +306,113 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         })}
       </div>
 
-      {/* Quick Preset Action Bar for Multi-Select (Hiện khi bật chọn nhiều hoặc có chọn bài) */}
+      {/* Quick Preset Action Bar for Multi-Select */}
       {isMultiMode && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-1.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs animate-in fade-in duration-150">
           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             <span className="text-[11px] font-bold text-rose-800 shrink-0 flex items-center gap-1">
               <CheckSquare className="w-3 h-3 text-rose-600" />
-              Chọn nhanh:
+              Chọn nhanh ({currentLevel}):
             </span>
-            <button
-              type="button"
-              onClick={() => handleQuickPreset(1, 3)}
-              className={`px-2 py-0.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                selectedLessons.length === 3 && selectedLessons.includes(1) && selectedLessons.includes(2) && selectedLessons.includes(3)
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              Bài 1 - 3
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickPreset(1, 5)}
-              className={`px-2 py-0.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                selectedLessons.length === 5 && selectedLessons.includes(1) && selectedLessons.includes(5)
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              Bài 1 - 5
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickPreset(6, 10)}
-              className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-            >
-              Bài 6 - 10
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickPreset(11, 15)}
-              className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-            >
-              Bài 11 - 15
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickPreset(16, 20)}
-              className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-            >
-              Bài 16 - 20
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickPreset(21, 25)}
-              className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-            >
-              Bài 21 - 25
-            </button>
+            {currentLevel === 'N5' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(1, 3)}
+                  className={`px-2 py-0.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                    selectedLessons.length === 3 && selectedLessons.includes(1) && selectedLessons.includes(2) && selectedLessons.includes(3)
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  Bài 1 - 3
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(1, 5)}
+                  className={`px-2 py-0.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
+                    selectedLessons.length === 5 && selectedLessons.includes(1) && selectedLessons.includes(5)
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  Bài 1 - 5
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(6, 10)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 6 - 10
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(11, 15)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 11 - 15
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(16, 20)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 16 - 20
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(21, 25)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 21 - 25
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(26, 28)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 26 - 28
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(26, 30)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 26 - 30
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(31, 35)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 31 - 35
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(36, 40)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 36 - 40
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(41, 45)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 41 - 45
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(46, 50)}
+                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Bài 46 - 50
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -557,6 +613,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         selectedLessons={selectedLessons}
+        level={currentLevel}
         onApply={(lessons) => {
           setIsMultiMode(lessons.length > 0);
           onFilterChange({ selectedLessons: lessons, lesson: 'all', part: 'all' });
