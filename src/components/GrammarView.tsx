@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { GrammarItem, JLPTLevel } from '../types';
 import { GRAMMAR_DATA } from '../data/grammarData';
-import { BookOpen, Search, Sparkles, Lightbulb, ChevronRight, CheckCircle2, Bookmark, Info } from 'lucide-react';
+import { BookOpen, Search, Sparkles, Lightbulb, ChevronRight, ChevronLeft, BookMarked, Info } from 'lucide-react';
 
 interface GrammarViewProps {
   currentLevel: JLPTLevel;
@@ -9,20 +9,108 @@ interface GrammarViewProps {
   currentLesson: number | 'all';
 }
 
+type GrammarScope = 'all' | 'part1' | 'part2' | number;
+
 export const GrammarView: React.FC<GrammarViewProps> = ({
   currentLevel,
   selectedLessons,
   currentLesson,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTabLesson, setActiveTabLesson] = useState<number | 'all'>(
-    selectedLessons.length === 1 ? selectedLessons[0] : (currentLesson !== 'all' ? currentLesson : 'all')
-  );
+  
+  // Active scope: 'all' | 'part1' | 'part2' | specific lesson number
+  const [activeScope, setActiveScope] = useState<GrammarScope>(() => {
+    if (selectedLessons.length === 1) return selectedLessons[0];
+    if (currentLesson !== 'all') return currentLesson;
+    return 'all';
+  });
 
   // Available lessons based on level
-  const totalLessons = currentLevel === 'N5' ? 25 : 25; // 1-25 for N5, 26-50 for N4
   const startLesson = currentLevel === 'N5' ? 1 : 26;
   const endLesson = currentLevel === 'N5' ? 25 : 50;
+  const part1Label = currentLevel === 'N5' ? 'Part 1 (1-15)' : 'Part 1 (26-37)';
+  const part2Label = currentLevel === 'N5' ? 'Part 2 (16-25)' : 'Part 2 (38-50)';
+
+  // Mouse & Touch drag scrolling refs (identically matched to Flashcard FilterBar)
+  const lessonScrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftStartRef = useRef(0);
+
+  // Wheel horizontal scrolling
+  const handleWheel = (e: React.WheelEvent) => {
+    if (lessonScrollRef.current && e.deltaY !== 0) {
+      lessonScrollRef.current.scrollLeft += e.deltaY * 1.2;
+    }
+  };
+
+  // Mouse drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!lessonScrollRef.current) return;
+    isDraggingRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.pageX - lessonScrollRef.current.offsetLeft;
+    scrollLeftStartRef.current = lessonScrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !lessonScrollRef.current) return;
+    const x = e.pageX - lessonScrollRef.current.offsetLeft;
+    const walk = (x - startXRef.current);
+    if (Math.abs(walk) > 4) {
+      hasDraggedRef.current = true;
+      e.preventDefault();
+      lessonScrollRef.current.scrollLeft = scrollLeftStartRef.current - walk;
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
+
+  // Click scroll buttons
+  const scrollLeft = () => {
+    if (lessonScrollRef.current) {
+      lessonScrollRef.current.scrollBy({ left: -240, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (lessonScrollRef.current) {
+      lessonScrollRef.current.scrollBy({ left: 240, behavior: 'smooth' });
+    }
+  };
+
+  // Auto center active lesson button
+  useEffect(() => {
+    if (lessonScrollRef.current) {
+      const activeEl = lessonScrollRef.current.querySelector('[data-active="true"]') as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeScope]);
+
+  // Sync active lesson when parent filter changes
+  useEffect(() => {
+    if (selectedLessons.length === 1) {
+      setActiveScope(selectedLessons[0]);
+    } else if (currentLesson !== 'all') {
+      setActiveScope(currentLesson);
+    } else if (selectedLessons.length === 0 && currentLesson === 'all') {
+      // Keep existing scope or 'all'
+    }
+  }, [currentLesson, selectedLessons]);
+
+  // Lessons list based on level
+  const lessonList = useMemo(() => {
+    const list: number[] = [];
+    for (let i = startLesson; i <= endLesson; i++) {
+      list.push(i);
+    }
+    return list;
+  }, [startLesson, endLesson]);
 
   // Filter grammar items
   const filteredGrammar = useMemo(() => {
@@ -30,13 +118,15 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
       // Level check
       if (item.level !== currentLevel) return false;
 
-      // Lesson filter
-      if (activeTabLesson !== 'all') {
-        if (item.lesson !== activeTabLesson) return false;
-      } else if (selectedLessons.length > 0) {
-        if (!selectedLessons.includes(item.lesson)) return false;
-      } else if (currentLesson !== 'all') {
-        if (item.lesson !== currentLesson) return false;
+      // Scope filter
+      if (activeScope === 'part1') {
+        const isPart1 = currentLevel === 'N5' ? (item.lesson >= 1 && item.lesson <= 15) : (item.lesson >= 26 && item.lesson <= 37);
+        if (!isPart1) return false;
+      } else if (activeScope === 'part2') {
+        const isPart2 = currentLevel === 'N5' ? (item.lesson >= 16 && item.lesson <= 25) : (item.lesson >= 38 && item.lesson <= 50);
+        if (!isPart2) return false;
+      } else if (typeof activeScope === 'number') {
+        if (item.lesson !== activeScope) return false;
       }
 
       // Search query
@@ -54,27 +144,7 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
 
       return true;
     });
-  }, [currentLevel, activeTabLesson, selectedLessons, currentLesson, searchQuery]);
-
-  // Sync active lesson when parent filter changes
-  React.useEffect(() => {
-    if (selectedLessons.length === 1) {
-      setActiveTabLesson(selectedLessons[0]);
-    } else if (currentLesson !== 'all') {
-      setActiveTabLesson(currentLesson);
-    } else if (selectedLessons.length === 0) {
-      setActiveTabLesson('all');
-    }
-  }, [currentLesson, selectedLessons]);
-
-  // Lessons list based on level
-  const lessonList = useMemo(() => {
-    const list: number[] = [];
-    for (let i = startLesson; i <= endLesson; i++) {
-      list.push(i);
-    }
-    return list;
-  }, [startLesson, endLesson]);
+  }, [currentLevel, activeScope, searchQuery]);
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
@@ -103,8 +173,11 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
         </div>
       </div>
 
-      {/* Search & Quick Lesson Selector */}
-      <div className="bg-white rounded-2xl p-3 sm:p-4 border border-rose-100 shadow-xs space-y-3">
+      {/* Search & Quick Lesson Selector Bar - Matched with Flashcard FilterBar */}
+      <div 
+        className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-3 sm:p-4 space-y-3 select-none"
+        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+      >
         {/* Search Box */}
         <div className="relative">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -113,43 +186,126 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm mẫu ngữ pháp, cấu trúc (vd: から, ても, たら, ないで), từ khóa, ý nghĩa..."
-            className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-rose-500 focus:bg-white transition-all"
+            className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-rose-500 focus:bg-white transition-all select-text"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold px-1 cursor-pointer"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Horizontal Scrollable Lesson List */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 text-xs">
+        {/* Horizontal Lesson Selector Scroller */}
+        <div className="relative flex items-center pt-1 border-t border-gray-100">
+          {/* Scroll Left Button */}
           <button
-            onClick={() => setActiveTabLesson('all')}
-            className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
-              activeTabLesson === 'all'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            type="button"
+            onClick={scrollLeft}
+            className="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 shrink-0 mr-1.5 transition-colors cursor-pointer"
+            title="Cuộn sang trái"
           >
-            Tất cả bài
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          {lessonList.map((lNum) => (
+
+          {/* Draggable & Smooth Scrollable Container */}
+          <div 
+            ref={lessonScrollRef}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 touch-pan-x scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing"
+            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+          >
+            <span className="text-xs font-bold text-gray-500 whitespace-nowrap flex items-center gap-1 shrink-0 mr-1 pointer-events-none select-none">
+              <BookMarked className="w-3.5 h-3.5 text-rose-500" />
+              Bài ({currentLevel}):
+            </span>
+
+            {/* Option: Cả 25 Bài */}
             <button
-              key={lNum}
-              onClick={() => setActiveTabLesson(lNum)}
-              className={`px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer ${
-                activeTabLesson === lNum
+              type="button"
+              data-active={activeScope === 'all'}
+              onClick={() => {
+                if (!hasDraggedRef.current) setActiveScope('all');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+                activeScope === 'all'
                   ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Bài {lNum}
+              Cả 25 Bài ({currentLevel})
             </button>
-          ))}
+
+            {/* Option: Part 1 */}
+            <button
+              type="button"
+              data-active={activeScope === 'part1'}
+              onClick={() => {
+                if (!hasDraggedRef.current) setActiveScope('part1');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+                activeScope === 'part1'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {part1Label}
+            </button>
+
+            {/* Option: Part 2 */}
+            <button
+              type="button"
+              data-active={activeScope === 'part2'}
+              onClick={() => {
+                if (!hasDraggedRef.current) setActiveScope('part2');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+                activeScope === 'part2'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {part2Label}
+            </button>
+
+            <span className="w-px h-4 bg-gray-200 mx-1 shrink-0 pointer-events-none" />
+
+            {/* Individual Lessons: Bài 1 -> Bài 25 */}
+            {lessonList.map((lNum) => (
+              <button
+                key={lNum}
+                type="button"
+                data-active={activeScope === lNum}
+                onClick={() => {
+                  if (!hasDraggedRef.current) setActiveScope(lNum);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
+                  activeScope === lNum
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Bài {lNum}
+              </button>
+            ))}
+          </div>
+
+          {/* Scroll Right Button */}
+          <button
+            type="button"
+            onClick={scrollRight}
+            className="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 shrink-0 ml-1.5 transition-colors cursor-pointer"
+            title="Cuộn sang phải"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -245,34 +401,28 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
           ))}
         </div>
       ) : (
-        /* Empty / Ready for next data prompt state */
+        /* Empty / Not found state */
         <div className="bg-white rounded-2xl border-2 border-dashed border-rose-200 p-8 sm:p-12 text-center space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto text-rose-500 shadow-xs">
             <BookOpen className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto space-y-1.5">
             <h4 className="text-base sm:text-lg font-bold text-gray-900">
-              Sẵn Sàng Nạp Dữ Liệu Ngữ Pháp!
+              Không tìm thấy mẫu ngữ pháp phù hợp
             </h4>
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              Phần khung giải thích ngữ pháp đã được thiết kế hoàn thiện. Ở prompt tiếp theo khi bạn gửi nội dung ngữ pháp ({currentLevel} / Bài {activeTabLesson === 'all' ? 'tiếp theo' : activeTabLesson}), hệ thống sẽ hiển thị đầy đủ ngay lập tức!
+              {searchQuery ? `Không có mẫu ngữ pháp nào khớp với từ khóa "${searchQuery}".` : `Chưa có mẫu ngữ pháp cho lựa chọn này.`}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <button
-              onClick={() => setActiveTabLesson(1)}
-              className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-all cursor-pointer shadow-xs active:scale-95"
-            >
-              Xem mẫu Bài 1 & 2
-            </button>
-            <button
               onClick={() => {
-                setActiveTabLesson('all');
+                setActiveScope('all');
                 setSearchQuery('');
               }}
-              className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold text-xs hover:bg-gray-200 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-all cursor-pointer shadow-xs active:scale-95"
             >
-              Xóa bộ lọc
+              Xem tất cả bài
             </button>
           </div>
         </div>
