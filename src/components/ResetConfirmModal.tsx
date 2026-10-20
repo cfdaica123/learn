@@ -8,6 +8,7 @@ interface ResetConfirmModalProps {
   masteredCount: number;
   hesitantCount: number;
   starredCount: number;
+  onOpenBackupModal?: () => void;
 }
 
 export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
@@ -17,6 +18,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
   masteredCount,
   hesitantCount,
   starredCount,
+  onOpenBackupModal,
 }) => {
   if (!isOpen) return null;
 
@@ -69,6 +71,23 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
             <span className="font-bold text-gray-900">Về mặc định cả 25 bài</span>
           </div>
         </div>
+
+        {/* Helpful hint to backup before deleting */}
+        {onOpenBackupModal && (
+          <div className="bg-emerald-50 rounded-xl p-2.5 mb-5 border border-emerald-200 flex items-center justify-between text-xs">
+            <span className="text-emerald-900 font-medium">💡 Muốn đổi máy hoặc giữ tiến độ?</span>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenBackupModal();
+              }}
+              className="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
+            >
+              Xuất file sao lưu (Backup)
+            </button>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2.5 justify-end">

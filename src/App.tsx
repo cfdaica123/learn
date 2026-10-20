@@ -9,6 +9,7 @@ import { WordListView } from './components/WordListView';
 import { GrammarView } from './components/GrammarView';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
+import { BackupModal } from './components/BackupModal';
 import { Sparkles } from 'lucide-react';
 
 const STORAGE_KEY_MASTERED = 'minna_mastered_words';
@@ -148,6 +149,7 @@ export default function App() {
 
   // Reset Cache / Modal State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -155,6 +157,21 @@ export default function App() {
     setTimeout(() => {
       setToastMessage(null);
     }, 3500);
+  };
+
+  const handleImportBackup = (
+    data: { mastered: string[]; learning: string[]; starred: string[] },
+    mode: 'replace' | 'merge'
+  ) => {
+    if (mode === 'replace') {
+      setMasteredIds(new Set(data.mastered));
+      setLearningIds(new Set(data.learning));
+      setStarredIds(new Set(data.starred));
+    } else {
+      setMasteredIds((prev) => new Set([...prev, ...data.mastered]));
+      setLearningIds((prev) => new Set([...prev, ...data.learning]));
+      setStarredIds((prev) => new Set([...prev, ...data.starred]));
+    }
   };
 
   const handleConfirmResetAll = () => {
@@ -282,6 +299,7 @@ export default function App() {
         masteredCount={masteredIds.size}
         totalVocabularyCount={levelVocabulary.length}
         onResetProgress={() => setIsResetModalOpen(true)}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -299,6 +317,7 @@ export default function App() {
             hesitantCount={hesitantCountInCurrentScope}
             starredCount={starredIds.size}
             onResetAllData={() => setIsResetModalOpen(true)}
+            onOpenBackupModal={() => setIsBackupModalOpen(true)}
           />
         )}
 
@@ -408,6 +427,18 @@ export default function App() {
         masteredCount={masteredIds.size}
         hesitantCount={learningIds.size}
         starredCount={starredIds.size}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
+      />
+
+      {/* Backup / Export / Import Modal */}
+      <BackupModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        masteredIds={masteredIds}
+        learningIds={learningIds}
+        starredIds={starredIds}
+        onImportData={handleImportBackup}
+        showToast={showToast}
       />
 
       {/* Toast Notification */}

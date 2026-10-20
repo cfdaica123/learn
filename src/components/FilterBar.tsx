@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { FilterState, WordStatusFilter } from '../types';
-import { MultiLessonModal } from './MultiLessonModal';
 import { 
   Filter, 
   Search, 
@@ -14,7 +13,7 @@ import {
   CheckSquare,
   Check,
   X,
-  SlidersHorizontal
+  HardDrive
 } from 'lucide-react';
 
 interface FilterBarProps {
@@ -27,6 +26,7 @@ interface FilterBarProps {
   hesitantCount: number;
   starredCount: number;
   onResetAllData?: () => void;
+  onOpenBackupModal?: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -39,6 +39,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   hesitantCount,
   starredCount,
   onResetAllData,
+  onOpenBackupModal,
 }) => {
   const lessonScrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -46,25 +47,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const scrollLeftStartRef = useRef(0);
   const hasDraggedRef = useRef(false);
 
-  // Multi-select modal & toggle state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Active lessons selection list
   const selectedLessons = filter.selectedLessons || [];
   const hasMultiSelection = selectedLessons.length > 0;
-  const [isMultiMode, setIsMultiMode] = useState(hasMultiSelection);
-
-  useEffect(() => {
-    if (selectedLessons.length > 0) {
-      setIsMultiMode(true);
-    }
-  }, [selectedLessons.length]);
 
   // Auto-scroll active lesson into center view smoothly
   useEffect(() => {
     if (lessonScrollRef.current) {
       let targetSelector = '';
       if (hasMultiSelection) {
-        // Scroll to the first selected lesson
-        targetSelector = `[data-lesson="${selectedLessons[0]}"]`;
+        targetSelector = `[data-lesson="${selectedLessons[selectedLessons.length - 1]}"]`;
       } else if (filter.lesson !== 'all') {
         targetSelector = `[data-lesson="${filter.lesson}"]`;
       } else if (filter.part === 1) {
@@ -82,7 +74,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         }
       }
     }
-  }, [filter.lesson, filter.part, hasMultiSelection]);
+  }, [filter.lesson, filter.part, selectedLessons.length, hasMultiSelection]);
 
   const handleWheel = (e: React.WheelEvent) => {
     if (lessonScrollRef.current && e.deltaY !== 0) {
@@ -121,41 +113,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     }
   };
 
-  // Toggle multi-select mode
-  const handleToggleMultiMode = () => {
-    if (isMultiMode) {
-      // Turn off multi mode -> revert to all or first selected lesson
-      setIsMultiMode(false);
-      if (selectedLessons.length === 1) {
-        onFilterChange({ lesson: selectedLessons[0], selectedLessons: [] });
-      } else {
-        onFilterChange({ selectedLessons: [], lesson: 'all', part: 'all' });
-      }
-    } else {
-      // Turn on multi mode
-      setIsMultiMode(true);
-      if (filter.lesson !== 'all') {
-        onFilterChange({ selectedLessons: [filter.lesson as number], lesson: 'all', part: 'all' });
-      }
-    }
-  };
-
-  // Handle lesson click
+  // USER REQUIREMENT: Chọt trực tiếp vào bài 1, bài 2 để chọn gộp hiển thị cả 2 bài mà không cần bấm nút "Chọn nhiều bài"
   const handleLessonClick = (l: number) => {
     if (hasDraggedRef.current) return;
 
-    if (isMultiMode) {
-      // Toggle lesson in multi-select list
-      let nextSelected: number[];
-      if (selectedLessons.includes(l)) {
-        nextSelected = selectedLessons.filter((num) => num !== l);
-      } else {
-        nextSelected = [...selectedLessons, l].sort((a, b) => a - b);
-      }
-      onFilterChange({ selectedLessons: nextSelected, lesson: 'all', part: 'all' });
+    let currentSelected: number[] = [];
+    if (selectedLessons.length > 0) {
+      currentSelected = [...selectedLessons];
+    } else if (filter.lesson !== 'all') {
+      currentSelected = [filter.lesson as number];
+    }
+
+    let nextSelected: number[];
+    if (currentSelected.includes(l)) {
+      // Bấm vào bài đang chọn -> Bỏ chọn bài đó
+      nextSelected = currentSelected.filter((num) => num !== l);
     } else {
-      // Single selection
-      onFilterChange({ lesson: l, selectedLessons: [], part: 'all' });
+      // Bấm vào bài chưa chọn -> Thêm bài đó vào danh sách chọn gộp
+      nextSelected = [...currentSelected, l].sort((a, b) => a - b);
+    }
+
+    if (nextSelected.length === 0) {
+      // Khi không còn bài nào được chọn -> Tự động quay về xem cả 25 bài
+      onFilterChange({ selectedLessons: [], lesson: 'all', part: 'all' });
+    } else {
+      onFilterChange({ selectedLessons: nextSelected, lesson: 'all', part: 'all' });
     }
   };
 
@@ -163,8 +145,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const handleQuickPreset = (start: number, end: number) => {
     const range: number[] = [];
     for (let i = start; i <= end; i++) range.push(i);
-    setIsMultiMode(true);
     onFilterChange({ selectedLessons: range, lesson: 'all', part: 'all' });
+  };
+
+  const handleSelectAllLessons = () => {
+    const all: number[] = [];
+    for (let i = startLesson; i <= endLesson; i++) all.push(i);
+    onFilterChange({ selectedLessons: all, lesson: 'all', part: 'all' });
+  };
+
+  const handleClearSelectedLessons = () => {
+    onFilterChange({ selectedLessons: [], lesson: 'all', part: 'all' });
   };
 
   const currentLevel = filter.level || 'N5';
@@ -185,7 +176,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 touch-pan-x scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing border-b border-gray-100 pb-3"
+        className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 touch-pan-x scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing border-b border-gray-100 pb-2.5"
         style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       >
         <span className="text-xs font-bold text-gray-500 whitespace-nowrap flex items-center gap-1 shrink-0 mr-1 pointer-events-none select-none">
@@ -199,7 +190,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           data-scope="all"
           onClick={() => {
             if (!hasDraggedRef.current) {
-              setIsMultiMode(false);
               onFilterChange({ part: 'all', lesson: 'all', selectedLessons: [] });
             }
           }}
@@ -218,7 +208,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           data-scope="part1"
           onClick={() => {
             if (!hasDraggedRef.current) {
-              setIsMultiMode(false);
               onFilterChange({ part: 1, lesson: 'all', selectedLessons: [] });
             }
           }}
@@ -237,7 +226,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           data-scope="part2"
           onClick={() => {
             if (!hasDraggedRef.current) {
-              setIsMultiMode(false);
               onFilterChange({ part: 2, lesson: 'all', selectedLessons: [] });
             }
           }}
@@ -252,40 +240,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         <span className="w-px h-4 bg-gray-200 mx-1 shrink-0 pointer-events-none" />
 
-        {/* USER REQUEST: Nút "Chọn nhiều bài" (Multi-select) */}
-        <button
-          type="button"
-          onClick={handleToggleMultiMode}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none active:scale-95 ${
-            isMultiMode || hasMultiSelection
-              ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-200'
-              : 'bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100'
-          }`}
-          title="Bật/tắt chế độ chọn nhiều bài (ví dụ: Bài 1, 2, 3)"
-        >
-          <CheckSquare className="w-3.5 h-3.5" />
-          <span>
-            {hasMultiSelection ? `Chọn nhiều: ${selectedLessons.length} bài` : 'Chọn nhiều bài'}
-          </span>
-        </button>
-
-        {/* Button to open visual grid modal */}
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shrink-0 cursor-pointer active:scale-95"
-          title={`Mở bảng chọn nhanh 25 bài học (${currentLevel})`}
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5 text-gray-700" />
-        </button>
-
-        <span className="w-px h-4 bg-gray-200 mx-1 shrink-0 pointer-events-none" />
-
-        {/* Individual Lessons */}
+        {/* Danh sách từng bài (1 - 25): Bấm trực tiếp bài 1, bài 2 để chọn gộp tức thì */}
         {Array.from({ length: totalLessons }, (_, i) => startLesson + i).map((l) => {
-          const isSelectedInMulti = isMultiMode && selectedLessons.includes(l);
-          const isSelectedInSingle = !isMultiMode && filter.lesson === l;
-          const isActive = isSelectedInMulti || isSelectedInSingle;
+          const isActive = selectedLessons.includes(l) || (selectedLessons.length === 0 && filter.lesson === l);
 
           return (
             <button
@@ -299,145 +256,181 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold'
               }`}
             >
-              {isSelectedInMulti && <Check className="w-3 h-3 stroke-[3]" />}
+              {isActive && <Check className="w-3 h-3 stroke-[3]" />}
               <span>Bài {l}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Quick Preset Action Bar for Multi-Select */}
-      {isMultiMode && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-1.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs animate-in fade-in duration-150">
-          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-            <span className="text-[11px] font-bold text-rose-800 shrink-0 flex items-center gap-1">
-              <CheckSquare className="w-3 h-3 text-rose-600" />
-              Chọn nhanh ({currentLevel}):
-            </span>
-            {currentLevel === 'N5' ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(1, 3)}
-                  className={`px-2 py-0.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                    selectedLessons.length === 3 && selectedLessons.includes(1) && selectedLessons.includes(2) && selectedLessons.includes(3)
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
-                  }`}
-                >
-                  Bài 1 - 3
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(1, 5)}
-                  className={`px-2 py-0.5 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
-                    selectedLessons.length === 5 && selectedLessons.includes(1) && selectedLessons.includes(5)
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
-                  }`}
-                >
-                  Bài 1 - 5
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(6, 10)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 6 - 10
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(11, 15)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 11 - 15
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(16, 20)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 16 - 20
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(21, 25)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 21 - 25
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(26, 28)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 26 - 28
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(26, 30)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 26 - 30
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(31, 35)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 31 - 35
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(36, 40)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 36 - 40
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(41, 45)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 41 - 45
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickPreset(46, 50)}
-                  className="px-2 py-0.5 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                  Bài 46 - 50
-                </button>
-              </>
-            )}
-          </div>
+      {/* THANH CHỌN NHANH COMBO BÀI HỌC */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-2 bg-gradient-to-r from-rose-50/70 via-rose-50/40 to-amber-50/40 rounded-xl border border-rose-100 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          <span className="text-[11px] font-bold text-rose-900 shrink-0 flex items-center gap-1 mr-0.5">
+            <CheckSquare className="w-3.5 h-3.5 text-rose-600" />
+            <span>Chọn nhanh combo ({currentLevel}):</span>
+          </span>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {hasMultiSelection && (
+          {currentLevel === 'N5' ? (
+            <>
+              {/* 1 chạm chọn ngay bài 1-3 */}
               <button
                 type="button"
-                onClick={() => onFilterChange({ selectedLessons: [] })}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-lg font-semibold text-xs text-rose-600 hover:bg-rose-100/60 transition-colors cursor-pointer"
+                onClick={() => handleQuickPreset(1, 3)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  selectedLessons.length === 3 && selectedLessons.includes(1) && selectedLessons.includes(2) && selectedLessons.includes(3)
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-200'
+                    : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+                title="Chọn cùng lúc Bài 1, Bài 2, Bài 3 để học hoặc làm bài trắc nghiệm"
+              >
+                Bài 1 - 3
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(1, 5)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  selectedLessons.length === 5 && selectedLessons.includes(1) && selectedLessons.includes(5)
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-200'
+                    : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                Bài 1 - 5
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(6, 10)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  selectedLessons.length === 5 && selectedLessons.includes(6) && selectedLessons.includes(10)
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-200'
+                    : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                Bài 6 - 10
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(11, 15)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  selectedLessons.length === 5 && selectedLessons.includes(11) && selectedLessons.includes(15)
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-200'
+                    : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                Bài 11 - 15
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(16, 20)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  selectedLessons.length === 5 && selectedLessons.includes(16) && selectedLessons.includes(20)
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-200'
+                    : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                Bài 16 - 20
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(21, 25)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                  selectedLessons.length === 5 && selectedLessons.includes(21) && selectedLessons.includes(25)
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-200'
+                    : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                Bài 21 - 25
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(26, 28)}
+                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs"
+              >
+                Bài 26 - 28
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(26, 30)}
+                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs"
+              >
+                Bài 26 - 30
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(31, 35)}
+                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs"
+              >
+                Bài 31 - 35
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(36, 40)}
+                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs"
+              >
+                Bài 36 - 40
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(41, 45)}
+                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs"
+              >
+                Bài 41 - 45
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickPreset(46, 50)}
+                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shadow-2xs"
+              >
+                Bài 46 - 50
+              </button>
+            </>
+          )}
+
+          {/* Quick All / Clear buttons */}
+          <button
+            type="button"
+            onClick={handleSelectAllLessons}
+            className="px-2 py-1 rounded-lg font-semibold text-xs text-rose-700 hover:bg-rose-100/70 transition-colors cursor-pointer"
+            title="Chọn tất cả các bài"
+          >
+            + Cả 25 bài
+          </button>
+        </div>
+
+        {/* Right side of multi-select bar: Selected summary & quick clear */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {hasMultiSelection ? (
+            <div className="flex items-center gap-1.5 bg-white/90 px-2 py-0.5 rounded-lg border border-rose-200 shadow-2xs">
+              <span className="text-[11px] font-bold text-rose-700">
+                Đã chọn {selectedLessons.length} bài ({selectedLessons.join(', ')})
+              </span>
+              <button
+                type="button"
+                onClick={handleClearSelectedLessons}
+                className="flex items-center gap-0.5 text-xs text-rose-500 hover:text-rose-800 transition-colors cursor-pointer font-bold ml-1"
+                title="Bỏ chọn"
               >
                 <X className="w-3 h-3" />
-                <span>Bỏ chọn</span>
+                <span>Bỏ</span>
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="px-2.5 py-0.5 rounded-lg font-bold text-xs bg-rose-600 text-white hover:bg-rose-700 transition-colors cursor-pointer"
-            >
-              Bảng chọn 25 bài
-            </button>
-          </div>
+            </div>
+          ) : (
+            <span className="text-[11px] text-gray-500 italic">
+              Bấm trực tiếp vào các bài trên thanh để chọn gộp
+            </span>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Row 2: BỘ LỌC TỪ (ĐÃ NHỚ, PHÂN VÂN, CHƯA NHỚ, KANJI, LƯU SAO) + TÌM KIẾM + NÚT XÓA CACHE */}
+      {/* Row 2: BỘ LỌC TỪ + TÌM KIẾM + SAO LƯU/ĐỔI MÁY + NÚT XÓA CACHE */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
         
         {/* Memory Status Filter Group */}
@@ -458,7 +451,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <span>Tất cả từ</span>
           </button>
 
-          {/* USER REQUEST BUTTON 1: "TỪ ĐÃ NHỚ" */}
+          {/* BUTTON: "TỪ ĐÃ NHỚ" */}
           <button
             type="button"
             onClick={() => handleStatusFilter('mastered')}
@@ -480,7 +473,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </span>
           </button>
 
-          {/* USER REQUEST: BỘ LỌC "TỪ PHÂN VÂN" */}
+          {/* BỘ LỌC "TỪ PHÂN VÂN" */}
           <button
             type="button"
             onClick={() => handleStatusFilter('hesitant')}
@@ -502,7 +495,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </span>
           </button>
 
-          {/* USER REQUEST BUTTON 2: "TỪ CHƯA NHỚ" */}
+          {/* BUTTON: "TỪ CHƯA NHỚ" */}
           <button
             type="button"
             onClick={() => handleStatusFilter('unmastered')}
@@ -558,7 +551,20 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <span>Đã lưu ⭐ ({starredCount})</span>
           </button>
 
-          {/* USER REQUEST 10: NÚT XÓA BỘ NHỚ CACHE VỀ BAN ĐẦU */}
+          {/* NÚT XUẤT / NHẬP CACHE ĐỂ ĐỔI MÁY */}
+          {onOpenBackupModal && (
+            <button
+              type="button"
+              onClick={onOpenBackupModal}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:scale-95 cursor-pointer shadow-2xs"
+              title="Xuất file backup hoặc tải file backup lên để tiếp tục học trên máy mới"
+            >
+              <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Xuất/Nhập cache (Đổi máy)</span>
+            </button>
+          )}
+
+          {/* NÚT XÓA BỘ NHỚ CACHE VỀ BAN ĐẦU */}
           {onResetAllData && (
             <button
               type="button"
@@ -607,18 +613,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
       </div>
-
-      {/* Multi-Lesson Modal */}
-      <MultiLessonModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        selectedLessons={selectedLessons}
-        level={currentLevel}
-        onApply={(lessons) => {
-          setIsMultiMode(lessons.length > 0);
-          onFilterChange({ selectedLessons: lessons, lesson: 'all', part: 'all' });
-        }}
-      />
 
     </div>
   );

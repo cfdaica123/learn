@@ -1,6 +1,6 @@
 import React from 'react';
 import { StudyMode, JLPTLevel } from '../types';
-import { BookOpen, Sparkles, CheckCircle2, RotateCw, Trophy, BookMarked } from 'lucide-react';
+import { BookOpen, Sparkles, CheckCircle2, RotateCw, Trophy, BookMarked, HardDrive } from 'lucide-react';
 import mountainLogoImg from '../assets/images/mountain_logo_1792384187876.jpg';
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ interface HeaderProps {
   masteredCount: number;
   totalVocabularyCount: number;
   onResetProgress: () => void;
+  onOpenBackupModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   masteredCount,
   totalVocabularyCount,
   onResetProgress,
+  onOpenBackupModal,
 }) => {
   const percentMastered = totalVocabularyCount > 0 
     ? Math.round((masteredCount / totalVocabularyCount) * 100) 
@@ -119,6 +121,17 @@ export const Header: React.FC<HeaderProps> = ({
                   />
                 </div>
               </div>
+
+              {onOpenBackupModal && (
+                <button
+                  onClick={onOpenBackupModal}
+                  title="Xuất hoặc nhập file sao lưu (backup cache) để đổi máy không mất từ vựng đã học"
+                  className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors active:scale-95 text-xs font-bold cursor-pointer"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="hidden sm:inline text-[11px]">Đổi máy (Backup)</span>
+                </button>
+              )}
 
               <button
                 onClick={onResetProgress}
