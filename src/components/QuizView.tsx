@@ -55,9 +55,10 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
       return;
     }
 
-    // Shuffle pool and pick up to 20 questions
+    // USER REQUIREMENT: Giới hạn theo đúng số lượng từ của bài/phạm vi đã chọn (không gán cứng 20 câu)
+    // Ví dụ chọn 2 bài 100 từ thì 100 câu hỏi, 2 bài 70 từ thì 70 câu hỏi, bài 35 từ thì 35 câu hỏi
     const shuffledItems = [...pool].sort(() => 0.5 - Math.random());
-    const selectedItems = shuffledItems.slice(0, Math.min(20, shuffledItems.length));
+    const selectedItems = shuffledItems;
 
     const prepared: PreparedQuestion[] = selectedItems.map((targetItem) => {
       let correctAnswer = targetItem.meaning;

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StudyMode, JLPTLevel } from '../types';
-import { BookOpen, Sparkles, CheckCircle2, RotateCw, Trophy, BookMarked, Menu, X } from 'lucide-react';
+import { BookOpen, Sparkles, CheckCircle2, RotateCw, Trophy, BookMarked } from 'lucide-react';
 import mountainLogoImg from '../assets/images/mountain_logo_1792384187876.jpg';
 
 interface HeaderProps {
@@ -24,8 +24,6 @@ export const Header: React.FC<HeaderProps> = ({
   totalVocabularyCount,
   onResetProgress,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
   const percentMastered = totalVocabularyCount > 0 
     ? Math.round((masteredCount / totalVocabularyCount) * 100) 
     : 0;
@@ -101,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right Header Section: Progress + Desktop Nav + Mobile Hamburger */}
+          {/* Right Header Section: Progress + Navigation Modes */}
           <div className="flex items-center gap-2 sm:gap-3">
             
             {/* Mastered Progress Tracker */}
@@ -132,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Desktop Navigation Modes (Flashcard / Quiz / Ngữ pháp / Tra cứu) */}
+            {/* Navigation Modes (Flashcard / Quiz / Ngữ pháp / Tra cứu) */}
             <div className="hidden md:flex items-center bg-gray-100/90 p-1 rounded-xl border border-gray-200/70">
               <button
                 onClick={() => onSelectMode('flashcard')}
@@ -183,267 +181,10 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Hamburger Menu Button for Mobile & Small Screens */}
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="flex md:hidden items-center justify-center w-9 h-9 rounded-xl bg-gray-100 hover:bg-rose-50 text-gray-700 hover:text-rose-600 transition-all cursor-pointer active:scale-95 border border-gray-200/70 shrink-0"
-              title="Mở menu chế độ học"
-              aria-label="Menu điều hướng"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
           </div>
 
         </div>
       </div>
-
-      {/* Mobile Hamburger Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex justify-end">
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-
-          {/* Drawer Panel */}
-          <div className="relative w-full max-w-xs sm:max-w-sm bg-white h-full shadow-2xl flex flex-col z-10 transition-transform duration-300">
-            {/* Drawer Header */}
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50/40">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl overflow-hidden border border-rose-200 shadow-xs shrink-0 bg-white">
-                  <img 
-                    src={mountainLogoImg} 
-                    alt="Yama Nihongo Mountain Logo" 
-                    className="w-full h-full object-cover object-center" 
-                  />
-                </div>
-                <div>
-                  <h2 className="text-base font-black text-gray-900 tracking-tight flex items-center gap-1">
-                    <span>Yama Nihongo</span>
-                    <span className="text-xs font-bold text-rose-600 font-japanese">山</span>
-                  </h2>
-                  <div className="text-[10px] text-gray-500 font-medium">
-                    Minna no Nihongo {currentLevel}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-8 h-8 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
-                aria-label="Đóng menu"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Drawer Body - Navigation & Settings */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              
-              {/* Level Selector Block */}
-              <div className="bg-gray-50 rounded-2xl p-3 border border-gray-200/80 space-y-2">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
-                  Cấp độ JLPT:
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectLevel('N5');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      currentLevel === 'N5'
-                        ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="block font-black text-sm">Minna N5</span>
-                    <span className={`block text-[11px] ${currentLevel === 'N5' ? 'text-rose-100' : 'text-gray-500'}`}>
-                      Bài 1 - 25
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectLevel('N4');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      currentLevel === 'N4'
-                        ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="block font-black text-sm">Minna N4</span>
-                    <span className={`block text-[11px] ${currentLevel === 'N4' ? 'text-rose-100' : 'text-gray-500'}`}>
-                      Bài 26 - 50
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Study Modes Navigation */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block px-1">
-                  Chế độ học tập:
-                </span>
-
-                {/* Flashcard */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectMode('flashcard');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-98 ${
-                    currentMode === 'flashcard'
-                      ? 'bg-rose-50/90 border-rose-300 text-rose-900 shadow-2xs ring-1 ring-rose-200'
-                      : 'bg-white border-gray-200/80 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    currentMode === 'flashcard' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-600'
-                  }`}>
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm">Flashcard</div>
-                    <div className="text-[11px] text-gray-500 truncate">Lật thẻ từ vựng & xáo trộn thứ tự</div>
-                  </div>
-                  {currentMode === 'flashcard' && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
-                  )}
-                </button>
-
-                {/* Quiz */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectMode('quiz');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-98 ${
-                    currentMode === 'quiz'
-                      ? 'bg-rose-50/90 border-rose-300 text-rose-900 shadow-2xs ring-1 ring-rose-200'
-                      : 'bg-white border-gray-200/80 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    currentMode === 'quiz' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-600'
-                  }`}>
-                    <Trophy className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm">Trắc nghiệm bẫy Kanji</div>
-                    <div className="text-[11px] text-gray-500 truncate">Luyện phản xạ & phân biệt chữ tương tự</div>
-                  </div>
-                  {currentMode === 'quiz' && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                  )}
-                </button>
-
-                {/* Grammar */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectMode('grammar');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-98 ${
-                    currentMode === 'grammar'
-                      ? 'bg-rose-50/90 border-rose-300 text-rose-900 shadow-2xs ring-1 ring-rose-200'
-                      : 'bg-white border-gray-200/80 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    currentMode === 'grammar' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-600'
-                  }`}>
-                    <BookMarked className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm">Ngữ pháp chi tiết</div>
-                    <div className="text-[11px] text-gray-500 truncate">25 bài, công thức, ví dụ & chú ý</div>
-                  </div>
-                  {currentMode === 'grammar' && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
-                  )}
-                </button>
-
-                {/* List / Search */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectMode('list');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-98 ${
-                    currentMode === 'list'
-                      ? 'bg-rose-50/90 border-rose-300 text-rose-900 shadow-2xs ring-1 ring-rose-200'
-                      : 'bg-white border-gray-200/80 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    currentMode === 'list' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-600'
-                  }`}>
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm">Tra cứu ({totalFilteredCount})</div>
-                    <div className="text-[11px] text-gray-500 truncate">Sổ tay từ vựng & âm Hán Việt</div>
-                  </div>
-                  {currentMode === 'list' && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
-                  )}
-                </button>
-              </div>
-
-              {/* Learning Progress Summary */}
-              <div className="bg-gray-50 rounded-2xl p-3.5 border border-gray-200/80 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-700">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Đã thuộc:
-                  </span>
-                  <span>{masteredCount} / {totalVocabularyCount} từ ({percentMastered}%)</span>
-                </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
-                    style={{ width: `${percentMastered}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Reset Progress Action */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onResetProgress();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gray-100 hover:bg-rose-50 text-gray-700 hover:text-rose-600 font-bold text-xs transition-colors cursor-pointer border border-gray-200 active:scale-98"
-                >
-                  <RotateCw className="w-4 h-4 text-rose-500" />
-                  <span>Về ban đầu (Xóa toàn bộ Cache)</span>
-                </button>
-              </div>
-
-            </div>
-
-            {/* Drawer Footer */}
-            <div className="p-3 border-t border-gray-100 text-center bg-gray-50 text-[11px] text-gray-500 font-medium">
-              <span className="font-bold text-rose-700">iBeos</span> ✦ 山 ✦ cps ✦ 🥕
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
