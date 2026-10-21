@@ -11,6 +11,63 @@ interface GrammarViewProps {
 
 type GrammarScope = 'all' | 'part1' | 'part2' | number;
 
+/**
+ * Responsive Grammar Card Title:
+ * On small screens or when the title overflows the container,
+ * smoothly glides across (marquee-glide) and supports touch/swipe scrolling
+ * so no title content is ever lost or truncated.
+ */
+const GrammarTitle: React.FC<{ title: string }> = ({ title }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const [overflowDistance, setOverflowDistance] = useState<number>(0);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const cWidth = containerRef.current.clientWidth;
+        const sWidth = textRef.current.scrollWidth;
+        if (sWidth > cWidth + 2) {
+          setOverflowDistance(sWidth - cWidth);
+        } else {
+          setOverflowDistance(0);
+        }
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [title]);
+
+  const isOverflowing = overflowDistance > 0;
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
+    >
+      <h3
+        ref={textRef}
+        style={
+          isOverflowing
+            ? ({
+                '--marquee-dist': `-${overflowDistance + 16}px`,
+                animation: `marquee-glide ${Math.max(6, Math.min(14, overflowDistance / 25 + 4))}s ease-in-out infinite alternate`,
+              } as React.CSSProperties)
+            : undefined
+        }
+        className={`text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap inline-block ${
+          isOverflowing ? 'hover:[animation-play-state:paused] active:[animation-play-state:paused]' : ''
+        }`}
+        title={title}
+      >
+        {title}
+      </h3>
+    </div>
+  );
+};
+
 export const GrammarView: React.FC<GrammarViewProps> = ({
   currentLevel,
   selectedLessons,
@@ -317,17 +374,15 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
               key={item.id}
               className="bg-white rounded-2xl border border-gray-200/80 shadow-xs hover:border-rose-300 transition-all overflow-hidden"
             >
-              {/* Card Header */}
-              <div className="bg-rose-50/60 px-4 sm:px-5 py-3 border-b border-rose-100 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="px-2 py-0.5 rounded-lg bg-rose-600 text-white text-[11px] font-bold shrink-0">
+              {/* Card Header with auto-glide/marquee on small screens */}
+              <div className="bg-rose-50/60 px-3.5 sm:px-5 py-3 border-b border-rose-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                  <span className="px-2 py-0.5 rounded-lg bg-rose-600 text-white text-[11px] font-bold shrink-0 shadow-2xs">
                     Bài {item.lesson}
                   </span>
-                  <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate">
-                    {item.title}
-                  </h3>
+                  <GrammarTitle title={item.title} />
                 </div>
-                <span className="text-[11px] font-semibold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-md shrink-0">
+                <span className="text-[11px] font-bold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md shrink-0">
                   {item.level}
                 </span>
               </div>

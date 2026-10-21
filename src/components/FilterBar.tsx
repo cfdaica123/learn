@@ -550,32 +550,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <Star className={`w-3.5 h-3.5 ${filter.starredOnly ? 'text-yellow-900 fill-yellow-900' : 'text-gray-400'}`} />
             <span>Đã lưu ⭐ ({starredCount})</span>
           </button>
-
-          {/* NÚT XUẤT / NHẬP CACHE ĐỂ ĐỔI MÁY */}
-          {onOpenBackupModal && (
-            <button
-              type="button"
-              onClick={onOpenBackupModal}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:scale-95 cursor-pointer shadow-2xs"
-              title="Xuất file backup hoặc tải file backup lên để tiếp tục học trên máy mới"
-            >
-              <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Xuất/Nhập cache (Đổi máy)</span>
-            </button>
-          )}
-
-          {/* NÚT XÓA BỘ NHỚ CACHE VỀ BAN ĐẦU */}
-          {onResetAllData && (
-            <button
-              type="button"
-              onClick={onResetAllData}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border border-rose-200 bg-rose-50/70 text-rose-700 hover:bg-rose-100 hover:border-rose-300 active:scale-95 cursor-pointer"
-              title="Xóa toàn bộ cache, đưa ứng dụng về trạng thái ban đầu"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
-              <span>Xóa cache ban đầu</span>
-            </button>
-          )}
         </div>
 
         {/* Right side: Active count + Search Input */}

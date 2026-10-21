@@ -26,6 +26,19 @@
   }
 }
 
+@keyframes marquee-glide {
+  0%, 25% {
+    transform: translateX(0);
+  }
+  75%, 100% {
+    transform: translateX(var(--marquee-dist, -50px));
+  }
+}
+
+.animate-marquee-glide {
+  animation: marquee-glide 7s ease-in-out infinite alternate;
+}
+
 /* Japanese typography smoothing */
 .font-japanese {
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
