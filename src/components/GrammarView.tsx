@@ -13,24 +13,26 @@ type GrammarScope = 'all' | 'part1' | 'part2' | number;
 
 /**
  * Responsive Grammar Card Title:
- * On small screens or when the title overflows the container,
- * smoothly glides across (marquee-glide) and supports touch/swipe scrolling
- * so no title content is ever lost or truncated.
+ * When the title overflows on small screens, continuously scrolls all the way through
+ * seamlessly at a brisk readable speed (no reversing/bouncing back).
  */
 const GrammarTitle: React.FC<{ title: string }> = ({ title }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
-  const [overflowDistance, setOverflowDistance] = useState<number>(0);
+  const [overflows, setOverflows] = useState<boolean>(false);
+  const [textWidth, setTextWidth] = useState<number>(0);
 
   useEffect(() => {
     const checkOverflow = () => {
       if (containerRef.current && textRef.current) {
         const cWidth = containerRef.current.clientWidth;
         const sWidth = textRef.current.scrollWidth;
-        if (sWidth > cWidth + 2) {
-          setOverflowDistance(sWidth - cWidth);
+        if (sWidth > cWidth + 4) {
+          setOverflows(true);
+          setTextWidth(sWidth);
         } else {
-          setOverflowDistance(0);
+          setOverflows(false);
+          setTextWidth(0);
         }
       }
     };
@@ -40,30 +42,48 @@ const GrammarTitle: React.FC<{ title: string }> = ({ title }) => {
     return () => window.removeEventListener('resize', checkOverflow);
   }, [title]);
 
-  const isOverflowing = overflowDistance > 0;
+  if (!overflows) {
+    return (
+      <div ref={containerRef} className="flex-1 min-w-0 overflow-hidden py-0.5">
+        <h3
+          ref={textRef}
+          className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap inline-block"
+          title={title}
+        >
+          {title}
+        </h3>
+      </div>
+    );
+  }
+
+  // Speed: ~70px per second for a brisk, smooth continuous marquee (fast enough so user doesn't wait)
+  const duration = Math.max(3.5, Math.min(8, (textWidth + 48) / 70));
 
   return (
     <div
       ref={containerRef}
-      className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
+      className="flex-1 min-w-0 overflow-hidden py-0.5 relative"
+      title={title}
     >
-      <h3
-        ref={textRef}
-        style={
-          isOverflowing
-            ? ({
-                '--marquee-dist': `-${overflowDistance + 16}px`,
-                animation: `marquee-glide ${Math.max(6, Math.min(14, overflowDistance / 25 + 4))}s ease-in-out infinite alternate`,
-              } as React.CSSProperties)
-            : undefined
-        }
-        className={`text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap inline-block ${
-          isOverflowing ? 'hover:[animation-play-state:paused] active:[animation-play-state:paused]' : ''
-        }`}
-        title={title}
+      <div
+        className="flex w-max hover:[animation-play-state:paused] active:[animation-play-state:paused]"
+        style={{
+          animation: `marquee-continuous ${duration}s linear infinite`,
+        }}
       >
-        {title}
-      </h3>
+        <h3
+          ref={textRef}
+          className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap pr-12 inline-block shrink-0"
+        >
+          {title}
+        </h3>
+        <h3
+          className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap pr-12 inline-block shrink-0"
+          aria-hidden="true"
+        >
+          {title}
+        </h3>
+      </div>
     </div>
   );
 };

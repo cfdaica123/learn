@@ -39,6 +39,15 @@
   animation: marquee-glide 7s ease-in-out infinite alternate;
 }
 
+@keyframes marquee-continuous {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 /* Japanese typography smoothing */
 .font-japanese {
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
