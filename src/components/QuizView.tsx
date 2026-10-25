@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { VocabularyItem } from '../types';
 import { ALL_VOCABULARY } from '../data/vocabulary';
 import { generateKanjiTraps, generateHiraganaTraps } from '../utils/quizTraps';
+import { generateChallengingMeaningTraps } from '../utils/meaningTraps';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -13,7 +14,10 @@ import {
   Infinity as InfinityIcon,
   Layers,
   StopCircle,
-  Play
+  Play,
+  Flame,
+  Zap,
+  BookOpen
 } from 'lucide-react';
 import { speakJapanese } from '../utils/speech';
 import confetti from 'canvas-confetti';
@@ -26,32 +30,66 @@ interface QuizViewProps {
 
 export type QuizType = 'meaning' | 'hanViet' | 'kanjiTrap' | 'hiraganaTrap';
 export type PracticeMode = 'infinite' | 'lesson';
+export type MeaningDifficulty = 'hard_hiragana' | 'mixed' | 'standard_kanji';
 
 interface PreparedQuestion {
   item: VocabularyItem;
   correctAnswer: string;
   options: string[];
+  displayPrompt: string;
+  promptKind: 'kanji' | 'hiragana';
 }
 
 /**
- * Helper to generate a single prepared question with accurate distractors/traps
+ * Helper to generate a single prepared question with accurate, challenging distractors/traps
  */
 function createSingleQuestion(
   targetItem: VocabularyItem,
   pool: VocabularyItem[],
-  quizType: QuizType
+  quizType: QuizType,
+  meaningDifficulty: MeaningDifficulty = 'hard_hiragana'
 ): PreparedQuestion {
-  let correctAnswer = targetItem.meaning;
+  let correctAnswer = targetItem.meaning.trim();
   let distractors: string[] = [];
+  let displayPrompt = targetItem.word;
+  let promptKind: 'kanji' | 'hiragana' = targetItem.hasKanji ? 'kanji' : 'hiragana';
 
-  if (quizType === 'hanViet') {
+  if (quizType === 'meaning') {
+    correctAnswer = targetItem.meaning.trim();
+    // USER REQUIREMENT: Nâng cấp bộ câu hỏi khó hơn nhiều, tập trung vào Đoán Nghĩa
+    // Dùng bộ phân loại ngữ nghĩa, các cặp trái nghĩa và bẫy kinh điển (antonyms, same category)
+    distractors = generateChallengingMeaningTraps(targetItem, pool);
+
+    if (meaningDifficulty === 'hard_hiragana') {
+      // Chống đoán mò Hán-Việt: Hiện Hiragana thay vì chữ Hán
+      promptKind = 'hiragana';
+      displayPrompt = targetItem.hiragana;
+    } else if (meaningDifficulty === 'mixed') {
+      if (targetItem.hasKanji) {
+        const useHiragana = Math.random() > 0.5;
+        promptKind = useHiragana ? 'hiragana' : 'kanji';
+        displayPrompt = useHiragana ? targetItem.hiragana : targetItem.word;
+      } else {
+        promptKind = 'hiragana';
+        displayPrompt = targetItem.word;
+      }
+    } else {
+      // 'standard_kanji'
+      promptKind = targetItem.hasKanji ? 'kanji' : 'hiragana';
+      displayPrompt = targetItem.word;
+    }
+  } else if (quizType === 'hanViet') {
     correctAnswer = targetItem.hanViet;
+    displayPrompt = targetItem.word;
+    promptKind = targetItem.hasKanji ? 'kanji' : 'hiragana';
     distractors = pool
       .filter((it) => it.id !== targetItem.id)
       .map((it) => it.hanViet)
       .filter((val) => val && val.trim() !== correctAnswer);
   } else if (quizType === 'kanjiTrap') {
     correctAnswer = targetItem.word;
+    displayPrompt = targetItem.hiragana;
+    promptKind = 'hiragana';
     distractors = generateKanjiTraps(targetItem.word);
     if (distractors.length < 3) {
       const fallback = pool
@@ -62,6 +100,8 @@ function createSingleQuestion(
     }
   } else if (quizType === 'hiraganaTrap') {
     correctAnswer = targetItem.hiragana;
+    displayPrompt = targetItem.word;
+    promptKind = 'kanji';
     distractors = generateHiraganaTraps(targetItem.hiragana);
     if (distractors.length < 3) {
       const fallback = pool
@@ -70,16 +110,13 @@ function createSingleQuestion(
         .filter((val) => val !== correctAnswer && !distractors.includes(val));
       distractors = [...distractors, ...fallback].slice(0, 3);
     }
-  } else {
-    // 'meaning'
-    correctAnswer = targetItem.meaning;
-    distractors = pool
-      .filter((it) => it.id !== targetItem.id)
-      .map((it) => it.meaning)
-      .filter((val) => val && val.trim() !== correctAnswer);
   }
 
-  const uniqueDistractors = [...new Set(distractors)].sort(() => 0.5 - Math.random()).slice(0, 3);
+  // Ensure unique distractors that don't duplicate correctAnswer
+  const uniqueDistractors = Array.from(new Set(distractors))
+    .filter((d) => d && d.trim().toLowerCase() !== correctAnswer.toLowerCase())
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 3);
 
   // Fallback if not enough distractors in the current small pool
   if (uniqueDistractors.length < 3) {
@@ -90,8 +127,8 @@ function createSingleQuestion(
         quizType === 'hiraganaTrap' ? it.hiragana :
         it.meaning
       ))
-      .filter((val) => val && val.trim() !== correctAnswer && !uniqueDistractors.includes(val));
-    const fallbackShuffled = [...new Set(fallbackPool)].sort(() => 0.5 - Math.random());
+      .filter((val) => val && val.trim().toLowerCase() !== correctAnswer.toLowerCase() && !uniqueDistractors.includes(val));
+    const fallbackShuffled = Array.from(new Set(fallbackPool)).sort(() => 0.5 - Math.random());
     uniqueDistractors.push(...fallbackShuffled.slice(0, 3 - uniqueDistractors.length));
   }
 
@@ -102,6 +139,8 @@ function createSingleQuestion(
     item: targetItem,
     correctAnswer,
     options,
+    displayPrompt,
+    promptKind,
   };
 }
 
@@ -110,6 +149,9 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
   // USER REQUIREMENT: Cho phép mở giới hạn luyện tập vô hạn ngẫu nhiên lặp lại đến khi tắt
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('infinite');
   
+  // USER REQUIREMENT: Nâng độ khó phần Đoán Nghĩa (mặc định thử thách Hiragana để chống đoán mò Hán-Việt)
+  const [meaningDifficulty, setMeaningDifficulty] = useState<MeaningDifficulty>('hard_hiragana');
+
   // Lesson fixed-questions mode state
   const [questions, setQuestions] = useState<PreparedQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -162,8 +204,8 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
     const targetItem = candidates[Math.floor(Math.random() * candidates.length)];
     recentWordIdsRef.current = [...recentWordIdsRef.current.slice(-15), targetItem.id];
 
-    return createSingleQuestion(targetItem, pool, quizType);
-  }, [quizType]);
+    return createSingleQuestion(targetItem, pool, quizType, meaningDifficulty);
+  }, [quizType, meaningDifficulty]);
 
   // Initialize or reset session
   const buildQuizSession = useCallback(() => {
@@ -190,16 +232,16 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
     } else {
       // Fixed according to number of words in selected lesson(s)
       const shuffled = [...pool].sort(() => 0.5 - Math.random());
-      const prepared = shuffled.map((it) => createSingleQuestion(it, pool, quizType));
+      const prepared = shuffled.map((it) => createSingleQuestion(it, pool, quizType, meaningDifficulty));
       setQuestions(prepared);
       setCurrentIndex(0);
     }
-  }, [getFilteredPool, practiceMode, pickNextInfiniteQuestion, quizType]);
+  }, [getFilteredPool, practiceMode, pickNextInfiniteQuestion, quizType, meaningDifficulty]);
 
-  // Rebuild quiz session when scopeKey, quizType, or practiceMode changes
+  // Rebuild quiz session when scopeKey, quizType, practiceMode, or meaningDifficulty changes
   useEffect(() => {
     buildQuizSession();
-  }, [scopeKey, quizType, practiceMode, buildQuizSession]);
+  }, [scopeKey, quizType, practiceMode, meaningDifficulty, buildQuizSession]);
 
   // Determine current active question
   const currentQ = practiceMode === 'infinite' ? infiniteQuestion : questions[currentIndex];
@@ -387,19 +429,20 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
         <div className="flex items-center gap-1 p-0.5 sm:p-1 bg-gray-100 rounded-xl text-[10px] sm:text-xs font-bold overflow-x-auto no-scrollbar max-w-full">
           <button
             onClick={() => setQuizType('meaning')}
-            className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
               quizType === 'meaning'
-                ? 'bg-white text-rose-700 shadow-xs'
+                ? 'bg-white text-rose-700 shadow-xs font-black'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Đoán Nghĩa
+            <span>Đoán Nghĩa</span>
+            <span className="text-[9px] px-1 py-0.2 bg-rose-100 text-rose-700 rounded-full font-bold">Hard</span>
           </button>
           <button
             onClick={() => setQuizType('hanViet')}
             className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               quizType === 'hanViet'
-                ? 'bg-white text-rose-700 shadow-xs'
+                ? 'bg-white text-rose-700 shadow-xs font-bold'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -428,6 +471,64 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
             Trap Cách đọc 🪤
           </button>
         </div>
+
+        {/* Row 1.5: Meaning Quiz Difficulty Level Selector (Focus on Đoán Nghĩa) */}
+        {quizType === 'meaning' && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-gray-500 shrink-0">
+                Độ khó Đoán Nghĩa:
+              </span>
+              <div className="flex items-center gap-1 bg-gray-100/80 p-0.5 rounded-lg border border-gray-200/80">
+                <button
+                  type="button"
+                  onClick={() => setMeaningDifficulty('hard_hiragana')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] transition-all cursor-pointer ${
+                    meaningDifficulty === 'hard_hiragana'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Đố bằng Hiragana thay vì chữ Hán để chống nhìn chữ Hán đoán mò, buộc phải thực sự nhớ nghĩa từ vựng"
+                >
+                  <Flame className="w-3 h-3 text-amber-300" />
+                  <span>Khó (Đố Hiragana)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMeaningDifficulty('mixed')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] transition-all cursor-pointer ${
+                    meaningDifficulty === 'mixed'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Trộn ngẫu nhiên câu hỏi bằng Hiragana và Chữ Hán"
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>Trộn lẫn</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMeaningDifficulty('standard_kanji')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] transition-all cursor-pointer ${
+                    meaningDifficulty === 'standard_kanji'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Hiển thị chữ Hán tiêu chuẩn kèm bộ bẫy đáp án nâng cao"
+                >
+                  <BookOpen className="w-3 h-3" />
+                  <span>Chữ Hán</span>
+                </button>
+              </div>
+            </div>
+
+            <span className="text-[10px] text-gray-400 italic hidden sm:inline">
+              *Bộ bẫy tự động ghép các từ cùng nhóm & trái nghĩa
+            </span>
+          </div>
+        )}
 
         {/* Row 2: Practice Mode (Vô hạn vs Theo bài) + Stats + Stop Button */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100">
@@ -516,6 +617,17 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
             <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200/70 rounded-lg">
               🪤 Trap Cách Đọc
             </span>
+          ) : quizType === 'meaning' ? (
+            currentQ.promptKind === 'hiragana' && item.hasKanji ? (
+              <span className="text-[10px] sm:text-xs font-black px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg flex items-center gap-1 shadow-2xs">
+                <Flame className="w-3 h-3 text-rose-600" />
+                <span>Đố Hiragana (Chống đoán Hán-Việt)</span>
+              </span>
+            ) : (
+              <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/70 rounded-lg">
+                🎯 Bẫy từ cùng nhóm
+              </span>
+            )
           ) : item.hasKanji ? (
             <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/70 rounded-lg">
               Chữ Hán (Kanji)
@@ -529,15 +641,11 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
 
         {/* Dynamic Question Prompt */}
         <div className="my-8 sm:my-10 min-h-[70px] flex flex-col justify-center items-center">
-          {quizType === 'kanjiTrap' ? (
-            <h2 className="text-4xl sm:text-6xl font-black text-rose-600 tracking-wider font-japanese break-words selection:bg-rose-100">
-              {item.hiragana}
-            </h2>
-          ) : (
-            <h2 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-wide font-japanese break-words selection:bg-rose-100">
-              {item.word}
-            </h2>
-          )}
+          <h2 className={`text-4xl sm:text-6xl font-black tracking-wide font-japanese break-words selection:bg-rose-100 ${
+            currentQ.promptKind === 'hiragana' && item.hasKanji ? 'text-rose-600' : 'text-gray-900'
+          }`}>
+            {currentQ.displayPrompt || item.word}
+          </h2>
         </div>
       </div>
 
@@ -611,7 +719,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
                 <div className="flex items-center gap-2 text-rose-700 font-extrabold text-sm sm:text-base">
                   <XCircle className="w-5 h-5 text-rose-600" />
                   <span>
-                    Chưa chính xác! Đáp án đúng: <strong className="underline font-japanese">{correctAnswer}</strong>
+                    Chưa chính xác! Đáp án đúng: <strong className="underline">{correctAnswer}</strong>
                   </span>
                 </div>
               )}
