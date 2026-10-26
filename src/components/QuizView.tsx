@@ -46,11 +46,18 @@ function createSingleQuestion(
   let distractors: string[] = [];
 
   if (quizType === 'meaning') {
-    // 100% pure Vietnamese, zero Japanese script/kanji in the answer options
-    correctAnswer = sanitizeMeaningOption(targetItem.meaning);
-    distractors = generateChallengingMeaningTraps(targetItem, pool)
-      .map(sanitizeMeaningOption)
-      .filter((d) => d && d.toLowerCase() !== correctAnswer.toLowerCase());
+    // USER REQUIREMENT:
+    // - Kanji thì câu trả lời sẽ là cách đọc (Hiragana) kèm các bẫy gần giống nhau để đánh lừa
+    // - Không phải Kanji thì đáp án là nghĩa tiếng Việt kèm các bẫy sát nghĩa để đánh lừa
+    if (targetItem.hasKanji) {
+      correctAnswer = targetItem.hiragana.trim();
+      distractors = generateHiraganaTraps(targetItem.hiragana);
+    } else {
+      correctAnswer = sanitizeMeaningOption(targetItem.meaning);
+      distractors = generateChallengingMeaningTraps(targetItem, pool)
+        .map(sanitizeMeaningOption)
+        .filter((d) => d && d.toLowerCase() !== correctAnswer.toLowerCase());
+    }
   } else if (quizType === 'hanViet') {
     correctAnswer = targetItem.hanViet;
     distractors = pool
@@ -87,11 +94,12 @@ function createSingleQuestion(
 
   // Fallback if not enough distractors in the current small pool
   if (uniqueDistractors.length < 3) {
+    const isTestingHiragana = (quizType === 'meaning' && targetItem.hasKanji) || quizType === 'hiraganaTrap';
     const fallbackPool = ALL_VOCABULARY
       .map((it) => (
         quizType === 'hanViet' ? it.hanViet :
         quizType === 'kanjiTrap' ? it.word :
-        quizType === 'hiraganaTrap' ? it.hiragana :
+        isTestingHiragana ? it.hiragana :
         sanitizeMeaningOption(it.meaning)
       ))
       .filter((val) => val && val.trim().toLowerCase() !== correctAnswer.toLowerCase() && !uniqueDistractors.includes(val));
@@ -396,9 +404,10 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
                 ? 'bg-white text-rose-700 shadow-xs font-black'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
+            title="Kanji thì chọn cách đọc Hiragana, thuần Kana thì chọn nghĩa tiếng Việt"
           >
-            <span>Đoán Nghĩa</span>
-            <span className="text-[9px] px-1.5 py-0.2 bg-rose-100 text-rose-700 rounded-full font-bold">Thử thách</span>
+            <span>Luyện Từ Vựng</span>
+            <span className="text-[9px] px-1.5 py-0.2 bg-rose-100 text-rose-700 rounded-full font-bold">Chuẩn</span>
           </button>
           <button
             onClick={() => setQuizType('hanViet')}
@@ -526,9 +535,13 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
               <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/70 rounded-lg">
                 Đoán Hán-Việt 🌟
               </span>
+            ) : item.hasKanji ? (
+              <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/70 rounded-lg">
+                🎯 Chọn cách đọc (Hiragana)
+              </span>
             ) : (
               <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/70 rounded-lg">
-                🎯 Đoán Nghĩa
+                🎯 Chọn nghĩa tiếng Việt
               </span>
             )}
 
@@ -570,7 +583,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ items, scopeKey = '', onMark
             }
           }
 
-          const isJapaneseText = quizType === 'kanjiTrap' || quizType === 'hiraganaTrap';
+          const isJapaneseText = (quizType === 'meaning' && item.hasKanji) || quizType === 'kanjiTrap' || quizType === 'hiraganaTrap';
 
           return (
             <button
