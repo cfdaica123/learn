@@ -43,17 +43,39 @@ export interface VocabularyTopic {
 }
 
 export type VerbGroup = 'I' | 'II' | 'III';
+export type VerbSubgroup = 'u-tsu-ru' | 'mu-bu-nu' | 'ku-gu' | 'su';
 
 export interface VerbConjugationItem {
   id: string;
   group: VerbGroup;
-  particle: string;
+  subgroup?: VerbSubgroup;
   dict: string;
+  hanViet?: string;
   meaning: string;
   masu: string;
   te: string;
   ta: string;
   nai: string;
+  potential: string;
+  volitional: string;
+  passive: string;
+  causative: string;
+  causativePassive: string;
+  conditional: string;
+  imperative: string;
+}
+
+export interface KeigoVerbItem {
+  id: string;
+  verb: string;
+  keigoType: 'Tôn kính' | 'Khiêm nhường';
+  equivalent: string;
+  masu: string;
+  te: string;
+  ta: string;
+  nai: string;
+  conditional: string;
+  note: string;
 }
 
 export type WordStatusFilter = 'all' | 'mastered' | 'unmastered' | 'hesitant';
