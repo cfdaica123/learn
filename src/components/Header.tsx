@@ -1,6 +1,6 @@
 import React from 'react';
 import { StudyMode, JLPTLevel } from '../types';
-import { BookOpen, Sparkles, CheckCircle2, RotateCw, Trophy, BookMarked, HardDrive, TableProperties } from 'lucide-react';
+import { BookOpen, Sparkles, CheckCircle2, RotateCw, Trophy, BookMarked, HardDrive, TableProperties, FolderOpen } from 'lucide-react';
 import mountainLogoImg from '../assets/images/mountain_logo_1792384187876.jpg';
 
 interface HeaderProps {
@@ -143,67 +143,80 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Navigation Modes (Flashcard / Quiz / Ngữ pháp / Động từ / Tra cứu) */}
+            {/* Navigation Modes (Flashcard / Quiz / Ngữ pháp / Chia động từ / Chủ đề / Tra cứu) */}
             <div className="hidden md:flex items-center bg-gray-100/90 p-1 rounded-xl border border-gray-200/70">
               <button
                 onClick={() => onSelectMode('flashcard')}
-                className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   currentMode === 'flashcard'
                     ? 'bg-white text-rose-700 shadow-xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-rose-500 shrink-0" />
+                <Sparkles className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-rose-500 shrink-0" />
                 <span>Flashcard</span>
               </button>
 
               <button
                 onClick={() => onSelectMode('quiz')}
-                className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   currentMode === 'quiz'
                     ? 'bg-white text-rose-700 shadow-xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+                <Trophy className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-amber-500 shrink-0" />
                 <span>Trắc nghiệm</span>
               </button>
 
               <button
                 onClick={() => onSelectMode('grammar')}
-                className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   currentMode === 'grammar'
                     ? 'bg-white text-rose-700 shadow-xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <BookMarked className="w-4 h-4 text-rose-500 shrink-0" />
+                <BookMarked className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-rose-500 shrink-0" />
                 <span>Ngữ pháp</span>
               </button>
 
               <button
                 onClick={() => onSelectMode('conjugation')}
-                className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   currentMode === 'conjugation'
                     ? 'bg-white text-rose-700 shadow-xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <TableProperties className="w-4 h-4 text-rose-500 shrink-0" />
-                <span className="hidden lg:inline">Chia động từ</span>
-                <span className="lg:hidden">Động từ</span>
+                <TableProperties className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-rose-500 shrink-0" />
+                <span className="hidden xl:inline">Chia động từ</span>
+                <span className="xl:hidden">Động từ</span>
+              </button>
+
+              <button
+                onClick={() => onSelectMode('topics')}
+                className={`flex items-center gap-1 px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  currentMode === 'topics'
+                    ? 'bg-white text-rose-700 shadow-xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <FolderOpen className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-rose-500 shrink-0" />
+                <span>Chủ đề</span>
               </button>
 
               <button
                 onClick={() => onSelectMode('list')}
-                className={`flex items-center gap-1.5 px-2 lg:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   currentMode === 'list'
                     ? 'bg-white text-rose-700 shadow-xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <BookOpen className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>Tra cứu ({totalFilteredCount})</span>
+                <BookOpen className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-rose-500 shrink-0" />
+                <span>Tra cứu</span>
+                <span className="hidden xl:inline">({totalFilteredCount})</span>
               </button>
             </div>
 

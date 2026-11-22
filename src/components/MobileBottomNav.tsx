@@ -1,6 +1,6 @@
 import React from 'react';
 import { StudyMode } from '../types';
-import { Sparkles, Trophy, BookOpen, BookMarked, TableProperties } from 'lucide-react';
+import { Sparkles, Trophy, BookOpen, BookMarked, TableProperties, FolderOpen } from 'lucide-react';
 
 interface MobileBottomNavProps {
   currentMode: StudyMode;
@@ -14,8 +14,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   filteredCount,
 }) => {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-gray-200/90 shadow-lg px-1.5 py-1 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
-      <div className="grid grid-cols-5 gap-1">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-gray-200/90 shadow-lg px-1 py-1 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
+      <div className="grid grid-cols-6 gap-0.5">
         
         {/* Flashcard Tab */}
         <button
@@ -69,6 +69,19 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px] whitespace-nowrap">Động từ</span>
         </button>
 
+        {/* Topics Tab */}
+        <button
+          onClick={() => onSelectMode('topics')}
+          className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ${
+            currentMode === 'topics'
+              ? 'text-rose-600 bg-rose-50/80 font-bold'
+              : 'text-gray-500 font-medium hover:text-gray-900'
+          }`}
+        >
+          <FolderOpen className="w-4 h-4 mb-0.5" />
+          <span className="text-[9.5px] whitespace-nowrap">Chủ đề</span>
+        </button>
+
         {/* List Tab */}
         <button
           onClick={() => onSelectMode('list')}
@@ -79,7 +92,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           }`}
         >
           <BookOpen className="w-4 h-4 mb-0.5" />
-          <span className="text-[10px] whitespace-nowrap">Tra cứu</span>
+          <span className="text-[9.5px] whitespace-nowrap">Tra cứu</span>
         </button>
 
       </div>

@@ -13,7 +13,34 @@ export interface VocabularyItem {
   note?: string; // Ghi chú thêm
 }
 
-export type StudyMode = 'flashcard' | 'quiz' | 'list' | 'grammar' | 'conjugation';
+export type StudyMode = 'flashcard' | 'quiz' | 'list' | 'grammar' | 'conjugation' | 'topics';
+
+export interface TopicVocabularyItem {
+  id: string;
+  word: string;
+  reading: string;
+  hanViet?: string;
+  meaning: string;
+  note?: string;
+  exampleJa?: string;
+  exampleVi?: string;
+}
+
+export interface TopicSection {
+  id: string;
+  order: number;
+  title: string;
+  subtitle?: string;
+  items: TopicVocabularyItem[];
+}
+
+export interface VocabularyTopic {
+  id: string;
+  title: string;
+  japaneseTitle: string;
+  description: string;
+  sections: TopicSection[];
+}
 
 export type VerbGroup = 'I' | 'II' | 'III';
 
