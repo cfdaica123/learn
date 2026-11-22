@@ -283,6 +283,14 @@ export default function App() {
     return wordsInScope.filter((item) => learningIds.has(item.id)).length;
   }, [wordsInScope, learningIds]);
 
+  const masteredCountInLevel = useMemo(() => {
+    return levelVocabulary.filter((item) => masteredIds.has(item.id)).length;
+  }, [levelVocabulary, masteredIds]);
+
+  const starredCountInLevel = useMemo(() => {
+    return levelVocabulary.filter((item) => starredIds.has(item.id)).length;
+  }, [levelVocabulary, starredIds]);
+
   const unmasteredCountInCurrentScope = useMemo(() => {
     return wordsInScope.length - masteredCountInCurrentScope - hesitantCountInCurrentScope;
   }, [wordsInScope.length, masteredCountInCurrentScope, hesitantCountInCurrentScope]);
@@ -296,7 +304,7 @@ export default function App() {
         currentLevel={currentLevel}
         onSelectLevel={handleSelectLevel}
         totalFilteredCount={filteredVocabulary.length}
-        masteredCount={masteredIds.size}
+        masteredCount={masteredCountInLevel}
         totalVocabularyCount={levelVocabulary.length}
         onResetProgress={() => setIsResetModalOpen(true)}
         onOpenBackupModal={() => setIsBackupModalOpen(true)}
@@ -315,7 +323,7 @@ export default function App() {
             masteredCount={masteredCountInCurrentScope}
             unmasteredCount={unmasteredCountInCurrentScope}
             hesitantCount={hesitantCountInCurrentScope}
-            starredCount={starredIds.size}
+            starredCount={starredCountInLevel}
             onResetAllData={() => setIsResetModalOpen(true)}
             onOpenBackupModal={() => setIsBackupModalOpen(true)}
           />
