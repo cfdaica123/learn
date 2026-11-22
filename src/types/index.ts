@@ -13,7 +13,21 @@ export interface VocabularyItem {
   note?: string; // Ghi chú thêm
 }
 
-export type StudyMode = 'flashcard' | 'quiz' | 'list' | 'grammar';
+export type StudyMode = 'flashcard' | 'quiz' | 'list' | 'grammar' | 'conjugation';
+
+export type VerbGroup = 'I' | 'II' | 'III';
+
+export interface VerbConjugationItem {
+  id: string;
+  group: VerbGroup;
+  particle: string;
+  dict: string;
+  meaning: string;
+  masu: string;
+  te: string;
+  ta: string;
+  nai: string;
+}
 
 export type WordStatusFilter = 'all' | 'mastered' | 'unmastered' | 'hesitant';
 

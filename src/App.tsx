@@ -7,6 +7,7 @@ import { FlashcardView } from './components/FlashcardView';
 import { QuizView } from './components/QuizView';
 import { WordListView } from './components/WordListView';
 import { GrammarView } from './components/GrammarView';
+import { VerbConjugationView } from './components/VerbConjugationView';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
 import { BackupModal } from './components/BackupModal';
@@ -314,7 +315,7 @@ export default function App() {
       <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-4 py-3 sm:py-6">
         
         {/* Filter Controls (Shown in Flashcard, Quiz, List modes) */}
-        {currentMode !== 'grammar' && (
+        {currentMode !== 'grammar' && currentMode !== 'conjugation' && (
           <FilterBar
             filter={filter}
             onFilterChange={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
@@ -330,7 +331,7 @@ export default function App() {
         )}
 
         {/* View Mode Switching */}
-        {currentLevel === 'N4' && levelVocabulary.length === 0 && currentMode !== 'grammar' ? (
+        {currentLevel === 'N4' && levelVocabulary.length === 0 && currentMode !== 'grammar' && currentMode !== 'conjugation' ? (
           <div className="bg-white rounded-3xl p-8 sm:p-12 text-center shadow-xs border border-rose-100 max-w-xl mx-auto my-6 sm:my-8 space-y-4">
             <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-rose-200">
               <Sparkles className="w-8 h-8" />
@@ -394,6 +395,8 @@ export default function App() {
             currentLesson={filter.lesson}
           />
         )}
+
+        {currentMode === 'conjugation' && <VerbConjugationView />}
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
