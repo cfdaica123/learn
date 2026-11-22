@@ -476,9 +476,11 @@ export const TopicVocabularyView: React.FC = () => {
                                       }`}
                                     />
                                   </button>
-                                  <span className="text-xs sm:text-sm font-japanese text-gray-600">
-                                    （{item.reading}）
-                                  </span>
+                                  {item.reading && item.reading !== item.word && (
+                                    <span className="text-xs sm:text-sm font-japanese text-gray-600">
+                                      （{item.reading}）
+                                    </span>
+                                  )}
                                   {item.hanViet && (
                                     <>
                                       <span className="text-gray-300" aria-hidden="true">
@@ -691,28 +693,32 @@ export const TopicVocabularyView: React.FC = () => {
                 </div>
 
                 {/* Optional Reading/HanViet Hint */}
-                {showHint || selectedOption !== null ? (
-                  <div className="text-xs sm:text-sm text-gray-600 font-medium flex items-center justify-center gap-2">
-                    <span className="font-japanese font-bold text-gray-800">
-                      {question.item.reading}
-                    </span>
-                    {question.item.hanViet && (
-                      <>
+                {(question.item.reading || question.item.hanViet) && (
+                  showHint || selectedOption !== null ? (
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium flex items-center justify-center gap-2">
+                      {question.item.reading && (
+                        <span className="font-japanese font-bold text-gray-800">
+                          {question.item.reading}
+                        </span>
+                      )}
+                      {question.item.reading && question.item.hanViet && (
                         <span aria-hidden="true">·</span>
+                      )}
+                      {question.item.hanViet && (
                         <span className="text-amber-700 font-bold">
                           {question.item.hanViet}
                         </span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowHint(true)}
-                    className="text-xs font-bold text-rose-600 hover:text-rose-700 underline underline-offset-2 cursor-pointer"
-                  >
-                    Xem gợi ý cách đọc / Hán Việt
-                  </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowHint(true)}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 underline underline-offset-2 cursor-pointer"
+                    >
+                      Xem gợi ý cách đọc / Hán Việt
+                    </button>
+                  )
                 )}
               </div>
 
