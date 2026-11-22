@@ -4,6 +4,8 @@ import { TopicVocabularyItem, VocabularyTopic } from '../types';
 import { speakJapanese } from '../utils/speech';
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Search,
   Volume2,
   Eye,
@@ -44,6 +46,151 @@ interface TopicQuestion {
   sectionTitle: string;
   options: string[];
 }
+
+interface HorizontalScrollStripProps {
+  children: React.ReactNode;
+  resetKey?: string;
+  ariaLabel: string;
+}
+
+const HorizontalScrollStrip: React.FC<HorizontalScrollStripProps> = ({
+  children,
+  resetKey,
+  ariaLabel,
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const justDraggedRef = useRef(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollLeft = 0;
+    updateScrollState();
+  }, [resetKey, updateScrollState]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+
+    const ro = new ResizeObserver(() => updateScrollState());
+    ro.observe(el);
+    window.addEventListener('resize', updateScrollState);
+
+    const handleWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth + 2) return;
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || e.deltaY === 0) return;
+
+      const atLeftEdge = el.scrollLeft <= 1 && e.deltaY < 0;
+      const atRightEdge = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 && e.deltaY > 0;
+      if (atLeftEdge || atRightEdge) return;
+
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+      updateScrollState();
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateScrollState);
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [children, updateScrollState]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const el = scrollRef.current;
+    if (!el || el.scrollWidth <= el.clientWidth + 2) return;
+
+    const startX = e.clientX;
+    const startScrollLeft = el.scrollLeft;
+    let moved = false;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      if (Math.abs(delta) > 5) {
+        moved = true;
+      }
+      if (moved) {
+        el.scrollLeft = startScrollLeft - delta;
+      }
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (moved) {
+        justDraggedRef.current = true;
+        setTimeout(() => {
+          justDraggedRef.current = false;
+        }, 0);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const scrollByAmount = (direction: -1 | 1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * 260, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="relative flex items-center gap-1.5 min-w-0 w-full">
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => scrollByAmount(-1)}
+          aria-label={`Cuộn trái ${ariaLabel}`}
+          className="w-7 h-7 rounded-lg bg-white border border-gray-200 shadow-xs text-gray-600 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center shrink-0 transition-colors cursor-pointer z-10"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollState}
+        onMouseDown={handleMouseDown}
+        onClickCapture={(e) => {
+          if (justDraggedRef.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            justDraggedRef.current = false;
+          }
+        }}
+        role="region"
+        aria-label={ariaLabel}
+        className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 cursor-grab active:cursor-grabbing select-none"
+      >
+        {children}
+      </div>
+
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => scrollByAmount(1)}
+          aria-label={`Cuộn phải ${ariaLabel}`}
+          className="w-7 h-7 rounded-lg bg-white border border-gray-200 shadow-xs text-gray-600 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center shrink-0 transition-colors cursor-pointer z-10"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const TopicVocabularyView: React.FC = () => {
   const [selectedTopicId, setSelectedTopicId] = useState<string>(VOCABULARY_TOPICS[0]?.id ?? '');
@@ -204,87 +351,64 @@ export const TopicVocabularyView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5 pb-8">
       {/* Topic Selector Menu Bar */}
-      <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs p-3 sm:p-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Interactive Menu Dropdown + Quick Topic Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5" ref={menuRef}>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
-                aria-expanded={isMenuOpen}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <FolderOpen className="w-4 h-4 shrink-0" />
-                <span>Menu chủ đề</span>
-                <ChevronDown
-                  className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
-                    isMenuOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
+      <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs p-3 sm:p-4 space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          {/* Interactive Menu Dropdown */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              aria-expanded={isMenuOpen}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <FolderOpen className="w-4 h-4 shrink-0" />
+              <span>Menu chủ đề</span>
+              <ChevronDown
+                className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
+                  isMenuOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
 
-              {isMenuOpen && (
-                <div className="absolute left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-gray-200 shadow-xl z-40 p-2 space-y-1">
-                  <div className="px-2.5 py-1.5 text-[11px] font-bold text-gray-500 border-b border-gray-100">
-                    Chọn chủ đề từ vựng ({VOCABULARY_TOPICS.length})
-                  </div>
-                  {VOCABULARY_TOPICS.map((topic) => {
-                    const isSelected = topic.id === currentTopic.id;
-                    const count = getTopicTotalCount(topic);
-                    return (
-                      <button
-                        key={topic.id}
-                        type="button"
-                        onClick={() => handleSelectTopic(topic.id)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-start justify-between gap-2 transition-colors cursor-pointer ${
-                          isSelected
-                            ? 'bg-rose-50 text-rose-800'
-                            : 'hover:bg-gray-50 text-gray-800'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <div className="text-xs sm:text-sm font-bold truncate">
-                            {topic.title}
-                          </div>
-                          <div className="text-[11px] text-gray-500 font-japanese mt-0.5 tabular-nums">
-                            {topic.japaneseTitle} · {count} từ
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <Check className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                        )}
-                      </button>
-                    );
-                  })}
+            {isMenuOpen && (
+              <div className="absolute left-0 mt-2 w-72 sm:w-80 max-h-[65vh] overflow-y-auto bg-white rounded-2xl border border-gray-200 shadow-xl z-40 p-2 space-y-1">
+                <div className="px-2.5 py-1.5 text-[11px] font-bold text-gray-500 border-b border-gray-100 sticky top-0 bg-white">
+                  Chọn chủ đề từ vựng ({VOCABULARY_TOPICS.length})
                 </div>
-              )}
-            </div>
-
-            {/* Horizontal Topic Pills for Instant 1-Click Switching */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              {VOCABULARY_TOPICS.map((topic) => {
-                const active = topic.id === currentTopic.id;
-                return (
-                  <button
-                    key={topic.id}
-                    type="button"
-                    onClick={() => handleSelectTopic(topic.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 border transition-all cursor-pointer tabular-nums ${
-                      active
-                        ? 'bg-rose-50 border-rose-300 text-rose-800'
-                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {topic.title} ({getTopicTotalCount(topic)})
-                  </button>
-                );
-              })}
-            </div>
+                {VOCABULARY_TOPICS.map((topic) => {
+                  const isSelected = topic.id === currentTopic.id;
+                  const count = getTopicTotalCount(topic);
+                  return (
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={() => handleSelectTopic(topic.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl flex items-start justify-between gap-2 transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'bg-rose-50 text-rose-800'
+                          : 'hover:bg-gray-50 text-gray-800'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs sm:text-sm font-bold truncate">
+                          {topic.title}
+                        </div>
+                        <div className="text-[11px] text-gray-500 font-japanese mt-0.5 tabular-nums">
+                          {topic.japaneseTitle} · {count} từ
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Sub-mode Toggle: Tra cứu vs Luyện tập */}
-          <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl self-start md:self-auto shrink-0">
+          {/* Sub-mode Toggle: Danh sách từ vs Luyện tập chủ đề */}
+          <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl shrink-0">
             <button
               type="button"
               onClick={() => setSubMode('browse')}
@@ -311,6 +435,29 @@ export const TopicVocabularyView: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Horizontal Topic Pills for Instant 1-Click Switching */}
+        <div className="pt-2 border-t border-gray-100">
+          <HorizontalScrollStrip ariaLabel="Danh sách chủ đề">
+            {VOCABULARY_TOPICS.map((topic) => {
+              const active = topic.id === currentTopic.id;
+              return (
+                <button
+                  key={topic.id}
+                  type="button"
+                  onClick={() => handleSelectTopic(topic.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 border transition-all cursor-pointer tabular-nums ${
+                    active
+                      ? 'bg-rose-50 border-rose-300 text-rose-800'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {topic.title} ({getTopicTotalCount(topic)})
+                </button>
+              );
+            })}
+          </HorizontalScrollStrip>
+        </div>
       </div>
 
       {/* Topic Header Banner */}
@@ -336,7 +483,10 @@ export const TopicVocabularyView: React.FC = () => {
 
       {/* Section Filter Tabs + Search + Hide Meaning */}
       <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-3 sm:p-4 space-y-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        <HorizontalScrollStrip
+          resetKey={currentTopic.id}
+          ariaLabel="Nhóm nội dung trong chủ đề"
+        >
           <button
             type="button"
             onClick={() => setSelectedSectionId('all')}
@@ -362,7 +512,7 @@ export const TopicVocabularyView: React.FC = () => {
               {sec.title} ({sec.items.length})
             </button>
           ))}
-        </div>
+        </HorizontalScrollStrip>
 
         {subMode === 'browse' && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1 border-t border-gray-100">
