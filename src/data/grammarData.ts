@@ -1,4 +1,5 @@
 import { GrammarItem } from '../types';
+import { N4_GRAMMAR_DATA } from './n4GrammarData';
 
 export const GRAMMAR_DATA: GrammarItem[] = [
   // ================= BÀI 1 =================
@@ -1739,7 +1740,10 @@ export const GRAMMAR_DATA: GrammarItem[] = [
       { japanese: 'あめが ふったら、いきません。', vietnamese: 'Nếu trời mưa thì tôi không đi.' },
       { japanese: 'あめが ふっても、いきます。', vietnamese: 'Dù trời có mưa thì tôi vẫn đi.' }
     ]
-  }
+  },
+
+  // ================= N4: BÀI 26 - 50 =================
+  ...N4_GRAMMAR_DATA
 ];
 
 // Helper lấy danh sách ngữ pháp theo bài và cấp độ

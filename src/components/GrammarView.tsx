@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { GrammarItem, JLPTLevel } from '../types';
 import { GRAMMAR_DATA } from '../data/grammarData';
-import { BookOpen, Search, Sparkles, Lightbulb, ChevronRight, ChevronLeft, BookMarked, Info } from 'lucide-react';
+import {
+  N4_VERB_SUMMARY,
+  N4_GROUP1_SPECIAL,
+  N4_ADJ_SUMMARY,
+  N4_CONFUSING_PAIRS,
+} from '../data/n4GrammarData';
+import { speakJapanese } from '../utils/speech';
+import { BookOpen, Search, Sparkles, Lightbulb, ChevronRight, ChevronLeft, ChevronDown, BookMarked, Info, Volume2, Table2, GitCompareArrows } from 'lucide-react';
 
 interface GrammarViewProps {
   currentLevel: JLPTLevel;
@@ -94,6 +101,8 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
   currentLesson,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showN4Handbook, setShowN4Handbook] = useState(false);
+  const [n4HandbookTab, setN4HandbookTab] = useState<'conjugation' | 'pairs'>('conjugation');
   
   // Active scope: 'all' | 'part1' | 'part2' | specific lesson number
   const [activeScope, setActiveScope] = useState<GrammarScope>(() => {
@@ -169,16 +178,26 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
     }
   }, [activeScope]);
 
-  // Sync active lesson when parent filter changes
+  // Sync active lesson when parent filter or level changes
   useEffect(() => {
     if (selectedLessons.length === 1) {
-      setActiveScope(selectedLessons[0]);
-    } else if (currentLesson !== 'all') {
-      setActiveScope(currentLesson);
-    } else if (selectedLessons.length === 0 && currentLesson === 'all') {
-      // Keep existing scope or 'all'
+      const target = selectedLessons[0];
+      if (target >= startLesson && target <= endLesson) {
+        setActiveScope(target);
+        return;
+      }
     }
-  }, [currentLesson, selectedLessons]);
+    if (currentLesson !== 'all' && currentLesson >= startLesson && currentLesson <= endLesson) {
+      setActiveScope(currentLesson);
+      return;
+    }
+    setActiveScope((prev) => {
+      if (typeof prev === 'number' && (prev < startLesson || prev > endLesson)) {
+        return 'all';
+      }
+      return prev;
+    });
+  }, [currentLesson, selectedLessons, currentLevel, startLesson, endLesson]);
 
   // Lessons list based on level
   const lessonList = useMemo(() => {
@@ -386,6 +405,178 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
         </div>
       </div>
 
+      {/* Collapsible N4 Reference Handbook (Phần VI & VII) */}
+      {currentLevel === 'N4' && (
+        <div className="bg-white rounded-2xl border border-rose-200/80 shadow-xs overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowN4Handbook((v) => !v)}
+            className="w-full px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 bg-gradient-to-r from-rose-50/80 to-amber-50/70 hover:from-rose-50 hover:to-amber-50 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <BookMarked className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-xs sm:text-sm font-bold text-gray-900">
+                  Cẩm nang tổng hợp N4 (Bảng chia thể &amp; 18 cặp ngữ pháp dễ nhầm)
+                </div>
+                <div className="text-[11px] text-gray-600 truncate">
+                  Đối chiếu nhanh thể động từ – tính từ và phân biệt bẫy JLPT N4
+                </div>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 shrink-0">
+              <span className="hidden sm:inline">{showN4Handbook ? 'Thu gọn' : 'Xem cẩm nang'}</span>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showN4Handbook ? 'rotate-180' : ''}`} />
+            </span>
+          </button>
+
+          {showN4Handbook && (
+            <div className="p-4 sm:p-5 border-t border-rose-100 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setN4HandbookTab('conjugation')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    n4HandbookTab === 'conjugation'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Table2 className="w-3.5 h-3.5" />
+                  <span>Bảng tổng hợp chia thể</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setN4HandbookTab('pairs')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    n4HandbookTab === 'pairs'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <GitCompareArrows className="w-3.5 h-3.5" />
+                  <span>18 cặp ngữ pháp dễ nhầm nhất</span>
+                </button>
+              </div>
+
+              {n4HandbookTab === 'conjugation' ? (
+                <div className="space-y-5">
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                      1. Tổng hợp chia thể 3 nhóm động từ
+                    </h4>
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+                          <tr>
+                            <th className="px-3 py-2 whitespace-nowrap">Thể</th>
+                            <th className="px-3 py-2 whitespace-nowrap">書く (Nhóm I)</th>
+                            <th className="px-3 py-2 whitespace-nowrap">食べる (Nhóm II)</th>
+                            <th className="px-3 py-2 whitespace-nowrap">する (Nhóm III)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {N4_VERB_SUMMARY.map((row) => (
+                            <tr key={row.form} className="hover:bg-rose-50/30">
+                              <td className="px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">{row.form}</td>
+                              <td className="px-3 py-2 font-japanese font-bold text-gray-900 whitespace-nowrap">{row.group1}</td>
+                              <td className="px-3 py-2 font-japanese font-bold text-gray-900 whitespace-nowrap">{row.group2}</td>
+                              <td className="px-3 py-2 font-japanese font-bold text-gray-900 whitespace-nowrap">{row.group3}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                      2. Các đuôi đặc trưng của Nhóm I (Khả năng – Bị động – Sai khiến)
+                    </h4>
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+                          <tr>
+                            <th className="px-3 py-2 whitespace-nowrap">Từ điển</th>
+                            <th className="px-3 py-2 whitespace-nowrap">Khả năng</th>
+                            <th className="px-3 py-2 whitespace-nowrap">Bị động</th>
+                            <th className="px-3 py-2 whitespace-nowrap">Sai khiến</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {N4_GROUP1_SPECIAL.map((row) => (
+                            <tr key={row.dict} className="hover:bg-rose-50/30">
+                              <td className="px-3 py-2 font-japanese font-bold text-rose-700 whitespace-nowrap">{row.dict}</td>
+                              <td className="px-3 py-2 font-japanese font-semibold text-gray-900 whitespace-nowrap">{row.potential}</td>
+                              <td className="px-3 py-2 font-japanese font-semibold text-gray-900 whitespace-nowrap">{row.passive}</td>
+                              <td className="px-3 py-2 font-japanese font-semibold text-gray-900 whitespace-nowrap">{row.causative}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                      3. Quy tắc chia tính từ với các mẫu ngữ pháp N4
+                    </h4>
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+                          <tr>
+                            <th className="px-3 py-2 whitespace-nowrap">Dạng / Mẫu</th>
+                            <th className="px-3 py-2 whitespace-nowrap">Tính từ い</th>
+                            <th className="px-3 py-2 whitespace-nowrap">Tính từ な</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {N4_ADJ_SUMMARY.map((row) => (
+                            <tr key={row.form} className="hover:bg-rose-50/30">
+                              <td className="px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">{row.form}</td>
+                              <td className="px-3 py-2 font-japanese font-bold text-gray-900 whitespace-nowrap">{row.iAdj}</td>
+                              <td className="px-3 py-2 font-japanese font-bold text-gray-900 whitespace-nowrap">{row.naAdj}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">
+                    Tổng hợp 18 cặp ngữ pháp dễ nhầm nhất khi làm bài thi JLPT N4 — tập trung phân biệt cơ chế và sắc thái sử dụng:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {N4_CONFUSING_PAIRS.map((item, idx) => (
+                      <div
+                        key={item.pair}
+                        className="rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 flex items-start gap-2.5"
+                      >
+                        <span className="w-5 h-5 rounded-md bg-rose-100 text-rose-700 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm font-bold text-gray-900 font-japanese">
+                            {item.pair}
+                          </div>
+                          <div className="text-xs text-rose-800 mt-0.5 leading-relaxed">
+                            {item.coreDifference}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Grammar Cards List */}
       {filteredGrammar.length > 0 ? (
         <div className="space-y-4">
@@ -415,7 +606,7 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
                   <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block mb-1">
                     Cấu trúc công thức:
                   </span>
-                  <div className="text-sm sm:text-base font-bold text-gray-900 font-sans tracking-wide">
+                  <div className="text-sm sm:text-base font-bold text-gray-900 font-sans tracking-wide whitespace-pre-line">
                     {item.structure}
                   </div>
                   <div className="text-xs sm:text-sm font-semibold text-rose-700 mt-1">
@@ -426,7 +617,7 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
                 {/* Explanation */}
                 <div className="text-xs sm:text-sm text-gray-700 leading-relaxed">
                   <span className="font-bold text-gray-900 block mb-1">💡 Giải thích cách dùng:</span>
-                  <p>{item.explanation}</p>
+                  <p className="whitespace-pre-line">{item.explanation}</p>
                 </div>
 
                 {/* Examples */}
@@ -437,19 +628,30 @@ export const GrammarView: React.FC<GrammarViewProps> = ({
                       {item.examples.map((ex, exIdx) => (
                         <div 
                           key={exIdx} 
-                          className="bg-gray-50/90 rounded-xl p-3 border border-gray-100 hover:bg-rose-50/30 transition-colors"
+                          className="bg-gray-50/90 rounded-xl p-3 border border-gray-100 hover:bg-rose-50/30 transition-colors flex items-start justify-between gap-2.5"
                         >
-                          <div className="text-sm sm:text-base font-bold text-gray-900 font-japanese">
-                            {ex.japanese}
-                          </div>
-                          {ex.romaji && (
-                            <div className="text-[11px] text-gray-500 font-mono mt-0.5">
-                              {ex.romaji}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm sm:text-base font-bold text-gray-900 font-japanese">
+                              {ex.japanese}
                             </div>
-                          )}
-                          <div className="text-xs sm:text-sm text-rose-800 font-medium mt-1">
-                            {ex.vietnamese}
+                            {ex.romaji && (
+                              <div className="text-[11px] text-gray-500 font-mono mt-0.5">
+                                {ex.romaji}
+                              </div>
+                            )}
+                            <div className="text-xs sm:text-sm text-rose-800 font-medium mt-1">
+                              {ex.vietnamese}
+                            </div>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => speakJapanese(ex.japanese)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-100/70 transition-colors shrink-0 cursor-pointer"
+                            title="Nghe phát âm tiếng Nhật"
+                            aria-label="Nghe phát âm câu ví dụ"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                     </div>
